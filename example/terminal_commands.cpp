@@ -41,12 +41,14 @@ namespace {
 				cpl_down,
 				cpl_up,
 				colors,
-				col_get_value,
+				col_begin,
+				col_get_value = col_begin,
 				col_list_themes,
 				col_reset_theme,
 				col_set_theme,
 				col_set_value,
-				csv_begin,
+				col_end,
+				csv_begin = col_end,
 				csv_auto_complete_non_selected = csv_begin,
 				csv_auto_complete_selected,
 				csv_auto_complete_separator,
@@ -83,8 +85,16 @@ namespace {
 				csv_title_bg_collapsed,
 				csv_window_bg,
 				csv_end,
-				NEXT_ONE = csv_end,
-				count = csv_end,
+				set_text = csv_end,
+				st_begin,
+				st_autoscroll = st_begin,
+				st_autowrap,
+				st_clear,
+				st_log_level,
+				st_optional_end,
+				st_logs = st_optional_end,
+				st_end,
+				count = st_end,
 			};
 		}
 
@@ -134,8 +144,13 @@ namespace {
 				"title_bg_active",
 				"title_bg_collapsed",
 				"window_bg",
+				"set_text",
+				"autoscroll",
+				"autowrap",
+				"clear",
+				"log_level",
+				"logs",
 		};
-		static_assert(strings.size() == cmds::NEXT_ONE);
 	}
 }
 
@@ -152,13 +167,9 @@ void terminal_commands::clear(argument_type& arg) {
 void terminal_commands::configure_term(argument_type& arg) {
 	using namespace cfg_term;
 
-	auto fail = [&arg]() -> void {
-		arg.term.add_text("What would you like, master?");
-	};
-
 	std::vector<std::string>& cl = arg.command_line;
 	if (cl.size() < 3) {
-		return fail();
+		arg.term.add_text_err("Not enough arguments");
 	}
 	if (cl[1] == strings[cmds::completion] && cl.size() == 3) {
 		if (cl[2] == strings[cmds::cpl_up]) {
@@ -168,7 +179,7 @@ void terminal_commands::configure_term(argument_type& arg) {
 		} else if (cl[2] == strings[cmds::cpl_disable]) {
 			arg.term.set_autocomplete_pos(term_t::position::nowhere);
 		} else {
-			return fail();
+			arg.term.add_formatted_err("Unknown completion parameter: {}", cl[2]);
 		}
 	} else if (cl[1] == strings[cmds::colors]) {
 		if (cl[2] == strings[cmds::col_list_themes] && cl.size() == 3) {
@@ -196,12 +207,15 @@ void terminal_commands::configure_term(argument_type& arg) {
 					return;
 				}
 			}
-			return fail();
+			arg.term.add_formatted_err("Unknown theme: {}", cl[3]);
+
 		} else if ((cl[2] == strings[cmds::col_set_value] && (cl.size() == 8 || cl.size() == 7 || cl.size() == 4))
 					|| (cl[2] == strings[cmds::col_get_value] && (cl.size() == 4))) {
 			auto it = misc::find_first_prefixed(cl[3], strings.begin() + cmds::csv_begin, strings.begin() + cmds::csv_end, [](auto&&){return false;});
+
 			if (it == strings.begin() + cmds::csv_end) {
-				return fail();
+				arg.term.add_formatted_err("Unknown item: {}", cl[3]);
+				return;
 			}
 
 			std::optional<ImTerm::theme::constexpr_color>* theme_color = nullptr;
@@ -243,7 +257,8 @@ void terminal_commands::configure_term(argument_type& arg) {
 				case cmds::csv_l_error:                    [[fallthrough]];
 				case cmds::csv_l_critical:                 theme_color = &arg.term.theme().log_level_colors[enum_v - cmds::csv_l_trace];    break;
 				default:
-					return fail();
+					arg.term.add_text_err("Internal error.");
+					return;
 			}
 
 			if (cl[2] == strings[cmds::col_set_value]) {
@@ -257,7 +272,7 @@ void terminal_commands::configure_term(argument_type& arg) {
 				};
 				std::uint8_t r{}, g{}, b{}, a{255};
 				if (!try_parse(cl[4], r) || !try_parse(cl[5], g) || !try_parse(cl[6], b) || (cl.size() == 8 && !try_parse(cl[7], a))) {
-					return fail();
+					arg.term.add_text_err("Bad color argument(s)");
 				}
 
 				*theme_color = {static_cast<float>(r) / 255.f,static_cast<float>(g) / 255.f,static_cast<float>(b) / 255.f,static_cast<float>(a) / 255.f};
@@ -273,8 +288,40 @@ void terminal_commands::configure_term(argument_type& arg) {
 				}
 			}
 		}
+
+	} else if (cl[1] == strings[cmds::set_text] && (cl.size() == 3 || cl.size() == 4 || cl.size() == 10)) {
+		auto it = misc::find_first_prefixed(cl[2], strings.begin() + cmds::st_begin, strings.begin() + cmds::st_optional_end, [](auto&&){return false;});
+		if (it == strings.begin() + cmds::st_optional_end) {
+			it = misc::find_first_prefixed(cl[2], strings.begin() + cmds::st_optional_end, strings.begin() + cmds::st_end, [](auto&&){return false;});
+			if (it == strings.begin() + cmds::st_end) {
+				arg.term.add_formatted_err("Unknown text field: {}", cl[2]);
+			} else if (cl.size() != 10) {
+				arg.term.add_text_err("Not enough/Too much arguments !");
+				arg.term.add_text_err("You should specify, in order: trace text, debug text, info text, warning text, error text, critical text, none text");
+			} else {
+				arg.term.set_level_list_text(cl[3], cl[4], cl[5], cl[6], cl[7], cl[8], cl[9]);
+			}
+		} else {
+			std::optional<std::string>* str = nullptr;
+			auto enum_v = static_cast<cmds::cmds>(it - strings.begin());
+			switch (enum_v) {
+				case cmds::st_autoscroll: str = &arg.term.autoscroll_text(); break;
+				case cmds::st_autowrap:   str = &arg.term.autowrap_text();   break;
+				case cmds::st_clear:      str = &arg.term.clear_text();      break;
+				case cmds::st_log_level:  str = &arg.term.log_level_text();  break;
+				default:
+					arg.term.add_text_err("Internal error.");
+					return;
+			}
+			if (cl.size() == 4) {
+				*str = cl[3];
+			} else {
+				str->reset();
+			}
+		}
+
 	} else {
-		return fail();
+		arg.term.add_formatted_err("Unknown parameter: {}", cl[1]);
 	}
 }
 
@@ -303,11 +350,18 @@ std::vector<std::string> terminal_commands::configure_term_autocomplete(argument
 	auto try_match = [&try_match_str](cmds::cmds cmd) {
 		try_match_str(strings[cmd]);
 	};
+	auto try_match_range = [&try_match](cmds::cmds begin, cmds::cmds end) {
+		for (int i = begin ; i < end ; ++i) {
+			try_match(static_cast<cmds::cmds>(i));
+		}
+	};
 
 	if (args.size() == 2) {
 		current_subpart = 1;
 		try_match(cmds::completion);
 		try_match(cmds::colors);
+		try_match(cmds::set_text);
+
 	} else if (args.size() == 3) {
 		current_subpart = 2;
 		if (args[1] == strings[cmds::completion]) {
@@ -320,13 +374,14 @@ std::vector<std::string> terminal_commands::configure_term_autocomplete(argument
 			if (all_args.term.get_autocomplete_pos() != term_t::position::up) {
 				try_match(cmds::cpl_up);
 			}
+
 		} else if (args[1] == strings[cmds::colors]) {
-			try_match(cmds::col_set_theme);
-			try_match(cmds::col_get_value);
-			try_match(cmds::col_list_themes);
-			try_match(cmds::col_set_value);
-			try_match(cmds::col_reset_theme);
+			try_match_range(cmds::col_begin, cmds::col_end);
+
+		} else if (args[1] == strings[cmds::set_text]) {
+			try_match_range(cmds::st_begin, cmds::st_end);
 		}
+
 	} else if (args.size() == 4) {
 		if (args[1] == strings[cmds::colors]) {
 			current_subpart = 3;
@@ -335,13 +390,11 @@ std::vector<std::string> terminal_commands::configure_term_autocomplete(argument
 					try_match_str(theme.name);
 				}
 			} else if (args[2] == strings[cmds::col_set_value] || args[2] == strings[cmds::col_get_value]) {
-				for (int i = cmds::csv_begin ; i < cmds::csv_end ; ++i) {
-					try_match(static_cast<cmds::cmds>(i));
-				}
-				std::sort(ans.begin(), ans.end());
+				try_match_range(cmds::csv_begin, cmds::csv_end);
 			}
 		}
 	}
+	std::sort(ans.begin(), ans.end());
 	return ans;
 }
 

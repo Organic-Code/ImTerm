@@ -41,6 +41,8 @@ int main()
 
 	custom_command_struct cmd_struct; // terminal commands can interact with this structure
 	ImTerm::terminal<terminal_commands> terminal_log(cmd_struct);
+	terminal_log.set_min_log_level(ImTerm::message::severity::info);
+
 	bool showing_term = true;
 
 	unsigned long frame_count = 0ul;
