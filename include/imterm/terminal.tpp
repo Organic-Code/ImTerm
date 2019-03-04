@@ -30,14 +30,14 @@ namespace details {
 
 	template <typename TerminalHelper>
 	std::enable_if_t<misc::is_detected_v<is_space_method, TerminalHelper>, int>
-	constexpr is_space(TerminalHelper&& t_h, std::string_view str) {
-		static_assert(std::is_same_v<decltype(t_h.is_space(str)), int>, "TerminalHelper::is_space(std::string_view) should return an int");
-		return t_h.is_space(str);
+	constexpr is_space(std::shared_ptr<TerminalHelper>& t_h, std::string_view str) {
+		static_assert(std::is_same_v<decltype(t_h->is_space(str)), int>, "TerminalHelper::is_space(std::string_view) should return an int");
+		return t_h->is_space(str);
 	}
 
 	template <typename TerminalHelper>
 	std::enable_if_t<!misc::is_detected_v<is_space_method, TerminalHelper>, int>
-	constexpr is_space(TerminalHelper&&, std::string_view str) {
+	constexpr is_space(std::shared_ptr<TerminalHelper>&, std::string_view str) {
 		return str[0] == ' ' ? 1 : 0;
 	}
 
@@ -46,13 +46,14 @@ namespace details {
 
 	template <typename TerminalHelper>
 	std::enable_if_t<misc::is_detected_v<get_length_method, TerminalHelper>, unsigned long>
-	constexpr get_length(TerminalHelper&& t_h, std::string_view str) {
-		return t_h.get_length(str);
+	constexpr get_length(std::shared_ptr<TerminalHelper>& t_h, std::string_view str) {
+		static_assert(std::is_same_v<decltype(t_h->get_length(str)), int>, "TerminalHelper::get_length(std::string_view) should return an int");
+		return t_h->get_length(str);
 	}
 
 	template <typename TerminalHelper>
 	std::enable_if_t<!misc::is_detected_v<get_length_method, TerminalHelper>, unsigned long>
-	constexpr get_length(TerminalHelper&&, std::string_view str) {
+	constexpr get_length(std::shared_ptr<TerminalHelper>&, std::string_view str) {
 		return str.size();
 	}
 
