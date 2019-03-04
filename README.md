@@ -143,7 +143,6 @@ you could think of is configurable, either be it via an optional or via your Ter
 Regarding optionals, if any of them is empty, it will be ignored.
 For colors, that means ImTerm will use the default color instead of a custom one. For the top bar texts (used for the terminal user options
 such as the ``clear`` button), that means the option will not be available for the end user.
-(As I write these lines, configuring colors is done, but I can't say the same for top bar texts)
 
 ## non-ascii characters
 

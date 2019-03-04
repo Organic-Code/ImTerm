@@ -88,31 +88,7 @@ terminal<TerminalHelper>::terminal(value_type& arg_value, const char* window_nam
 	details::assign_terminal(*m_t_helper, *this);
 
 	std::fill(m_command_buffer.begin(), m_command_buffer.end(), '\0');
-
-	std::string trace = "trace";
-	std::string debug = "debug";
-	std::string info = "info";
-	std::string warning = "warning";
-	std::string error = "error";
-	std::string critical = "critical";
-	std::string none = "none";
-
-	m_level_list_text.resize(trace.size() + 1 + debug.size() + 1 + info.size() + 1 + warning.size() + 1
-	                       + error.size() + 1 + critical.size() + 1 + none.size() + 2, '\0');
-
-	const std::string* levels[] = {&trace, &debug, &info, &warning, &error, &critical, &none };
-
-	// TODO: optional, settable, fix
-	unsigned int current_shift = 0;
-	m_longest_log_level = "";
-	for (const std::string*& lvl : levels) {
-		std::copy(lvl->begin(), lvl->end(), m_level_list_text.begin() + current_shift);
-		if (get_length(*lvl) > get_length({m_longest_log_level, std::strlen(m_longest_log_level)})) {
-			m_longest_log_level = m_level_list_text.data() + current_shift;
-		}
-		current_shift += static_cast<unsigned int>(lvl->size()) + 1u;
-	}
-
+	set_level_list_text("trace", "debug", "info", "warning", "error", "critical", "none");
 }
 
 template <typename TerminalHelper>
@@ -253,6 +229,58 @@ void terminal<TerminalHelper>::clear() {
 }
 
 template <typename TerminalHelper>
+void terminal<TerminalHelper>::set_level_list_text(std::string_view trace_str, std::string_view debug_str
+		, std::string_view info_str, std::string_view warn_str, std::string_view err_str, std::string_view critical_str
+		, std::string_view none_str) {
+
+	m_level_list_text.clear();
+	m_level_list_text.shrink_to_fit();
+	m_level_list_text.resize(
+			trace_str.size() + 1
+		+ debug_str.size() + 1
+		+ info_str.size() + 1
+		+ warn_str.size() + 1
+		+ err_str.size() + 1
+		+ critical_str.size() + 1
+		+ 1, '\0');
+
+	const std::string_view* const levels[] = {&trace_str, &debug_str, &info_str, &warn_str, &err_str, &critical_str, &none_str};
+
+	unsigned int current_shift = 0;
+	for (const std::string_view* const lvl : levels) {
+		std::copy(lvl->begin(), lvl->end(), m_level_list_text.data() + current_shift);
+		current_shift += static_cast<unsigned int>(lvl->size()) + 1u;
+	}
+
+	set_min_log_level(m_lowest_log_level_val);
+}
+
+
+template <typename TerminalHelper>
+void terminal<TerminalHelper>::set_min_log_level(message::severity::severity_t level) {
+	m_lowest_log_level_val = level;
+	m_lowest_log_level = m_level_list_text.data();
+	for (int i = level ; i > 0 ; --i) {
+		m_lowest_log_level += std::strlen(m_lowest_log_level) + 1;
+	}
+	m_selector_size_global.reset();
+
+	m_longest_log_level = "";
+	std::size_t longest_len = 0u;
+	const char* current_str = m_lowest_log_level;
+
+	for (int i = level ; i < message::severity::critical + 2 ; ++i) {
+		auto length = std::strlen(current_str);
+		auto regular_len = get_length({current_str, length});
+		if (regular_len > longest_len) {
+			longest_len = regular_len;
+			m_longest_log_level = current_str;
+		}
+		current_str += length + 1;
+	}
+}
+
+template <typename TerminalHelper>
 void terminal<TerminalHelper>::try_log(std::string_view str, message::type type) {
 	message::severity::severity_t severity;
 	switch (type) {
@@ -276,36 +304,60 @@ void terminal<TerminalHelper>::try_log(std::string_view str, message::type type)
 
 template <typename TerminalHelper>
 void terminal<TerminalHelper>::compute_text_size() noexcept {
-	if (!m_selector_size_global) {
-		m_selector_label_size = ImGui::CalcTextSize(m_log_level_text.data());
-		m_selector_label_size.x += ImGui::GetStyle().ItemSpacing.x;
-		m_selector_size_global = ImGui::CalcTextSize(m_longest_log_level);
-		m_selector_size_global->x += m_selector_label_size.x + ImGui::GetStyle().ItemInnerSpacing.x * 3 + ImGui::GetFrameHeight();
-		m_selector_size_global->y += m_selector_label_size.y;
+	if (m_log_level_text) {
+		if (!m_selector_size_global) {
+			m_selector_label_size = ImGui::CalcTextSize(m_log_level_text->data());
+			m_selector_label_size.x += ImGui::GetStyle().ItemSpacing.x;
+			m_selector_size_global = ImGui::CalcTextSize(m_longest_log_level);
+			m_selector_size_global->x +=
+					m_selector_label_size.x + ImGui::GetStyle().ItemInnerSpacing.x * 3 + ImGui::GetFrameHeight();
+			m_selector_size_global->y += m_selector_label_size.y;
+		}
+	} else {
+		m_selector_size_global.reset();
 	}
 }
 
 template <typename TerminalHelper>
 void terminal<TerminalHelper>::display_settings_bar() noexcept {
 
-	if (ImGui::Button(m_clear_text.data())) {
-		clear();
+	bool same_line_req{false};
+	auto same_line = [&same_line_req]() {
+		if (same_line_req) {
+			ImGui::SameLine();
+		}
+		same_line_req = true;
+	};
+
+	if (m_clear_text) {
+		if (ImGui::Button(m_clear_text->data())) {
+			clear();
+		}
+		same_line_req = true;
 	}
-	ImGui::SameLine();
-	ImGui::Checkbox(m_autowrap_text.data(), &m_autowrap);
-	ImGui::SameLine();
-	ImGui::Checkbox(m_autoscroll_text.data(), &m_autoscroll);
 
-	ImGui::SameLine();
-	ImGui::Dummy(ImVec2(std::max(ImGui::GetContentRegionAvailWidth() - m_selector_size_global->x, 0.f), 1));
+	if (m_autowrap_text) {
+		same_line();
+		ImGui::Checkbox(m_autowrap_text->data(), &m_autowrap);
+	}
 
-	ImGui::SameLine();
-	ImGui::TextUnformatted(m_log_level_text.data(), m_log_level_text.data() + m_log_level_text.size());
+	if (m_autoscroll_text) {
+		same_line();
+		ImGui::Checkbox(m_autoscroll_text->data(), &m_autoscroll);
+	}
 
-	ImGui::SameLine();
-	ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth());
-	ImGui::Combo("##terminal:log_level_selector:combo", &m_level, m_level_list_text.data());
-	ImGui::PopItemWidth();
+	if (m_log_level_text && m_selector_size_global) {
+		same_line();
+		ImGui::Dummy(ImVec2(std::max(ImGui::GetContentRegionAvailWidth() - m_selector_size_global->x, 0.f), 1));
+
+		ImGui::SameLine();
+		ImGui::TextUnformatted(m_log_level_text->data(), m_log_level_text->data() + m_log_level_text->size());
+
+		ImGui::SameLine();
+		ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth());
+		ImGui::Combo("##terminal:log_level_selector:combo", &m_level, m_lowest_log_level);
+		ImGui::PopItemWidth();
+	}
 }
 
 template <typename TerminalHelper>
@@ -326,7 +378,7 @@ void terminal<TerminalHelper>::display_messages() noexcept {
 			}
 
 			for (const message& msg : m_logs) {
-				if (msg.severity < m_level && !msg.is_term_message) {
+				if (msg.severity < (m_level + m_lowest_log_level_val) && !msg.is_term_message) {
 					continue;
 				}
 

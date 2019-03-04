@@ -314,6 +314,41 @@ namespace ImTerm {
 		// clears the message panel
 		void clear();
 
+		// returns the text used to label the button that clears the message panel
+		// set it to an empty optional if you don't want the button to be displayed
+		std::optional<std::string>& clear_text() noexcept {
+			return m_clear_text;
+		}
+
+		// returns the text used to label the checkbox enabling or disabling message panel auto scrolling
+		// set it to an empty optional if you don't want the checkbox to be displayed
+		std::optional<std::string>& autoscroll_text() noexcept {
+			return m_autoscroll_text;
+		}
+
+		// returns the text used to label the checkbox enabling or disabling message panel text auto wrap
+		// set it to an empty optional if you don't want the checkbox to be displayed
+		std::optional<std::string>& autowrap_text() noexcept {
+			return m_autowrap_text;
+		}
+
+		// returns the text used to label the drop down list used to select the minimum severity to be displayed
+		// set it to an empty optional if you don't want the drop down list
+		std::optional<std::string>& log_level_text() noexcept {
+			return m_log_level_text;
+		}
+
+		// allows you to set the text in the log_level drop down list
+		// the std::string_view/s are copied, so you don't need to manage their life-time
+		// set log_level_text() to an empty optional if you want to disable the drop down list
+		void set_level_list_text(std::string_view trace_str, std::string_view debug_str, std::string_view info_str,
+					std::string_view warn_str, std::string_view err_str, std::string_view critical_str, std::string_view none_str);
+
+		// sets the maximum verbosity a user can set in the terminal with the log_level drop down list
+		// for instance, if you pass 'info', the user will be able to select 'info','warning','error', 'critical', and 'none',
+		// but will never be able to view 'trace' and 'debug' messages
+		void set_min_log_level(message::severity::severity_t level);
+
 	private:
 		explicit terminal(value_type& arg_value, const char * window_name_, int base_width_, int base_height_, std::shared_ptr<TerminalHelper> th, terminal_helper_is_valid&&);
 
@@ -374,7 +409,6 @@ namespace ImTerm {
 		std::optional<std::vector<std::string>> split_by_space(std::string_view in, bool ignore_non_match = false) const;
 
 		////////////
-		std::vector<message> m_logs;
 
 		value_type& m_argument_value;
 		mutable std::shared_ptr<TerminalHelper> m_t_helper;
@@ -395,17 +429,23 @@ namespace ImTerm {
 		std::vector<std::string>::size_type m_last_size{0u};
 		int m_level{message::severity::trace};
 
-		std::string m_autoscroll_text;
-		std::string m_clear_text;
-		std::string m_log_level_text;
-		std::string m_autowrap_text;
-
-		// messages view variables
+		std::optional<std::string> m_autoscroll_text;
+		std::optional<std::string> m_clear_text;
+		std::optional<std::string> m_log_level_text;
+		std::optional<std::string> m_autowrap_text;
 		std::string m_level_list_text{};
-		const char* m_longest_log_level{nullptr};
+		const char* m_longest_log_level{nullptr}; // points to the longest log level, in m_level_list_text
+		const char* m_lowest_log_level{nullptr}; // points to the lowest log level possible, in m_level_list_text
+		message::severity::severity_t m_lowest_log_level_val{message::severity::trace};
 
 		std::optional<ImVec2> m_selector_size_global{};
 		ImVec2 m_selector_label_size{};
+
+
+		// message panel variables
+		unsigned long m_last_flush_at_history{0u}; // for the [-n] indicator on command line
+		bool m_flush_bit{false};
+		std::vector<message> m_logs{};
 
 
 		// command line variables
@@ -430,8 +470,6 @@ namespace ImTerm {
 		std::string_view m_command_line_backup_prefix{};
 		std::vector<std::string> m_command_history{};
 		std::optional<std::vector<std::string>::iterator> m_current_history_selection{};
-		unsigned long m_last_flush_at_history{0u}; // for the [-n] indicator on command line
-		bool m_flush_bit{false};
 
 		bool m_ignore_next_textinput{false};
 		bool m_has_focus{false};
