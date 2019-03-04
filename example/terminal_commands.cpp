@@ -247,13 +247,13 @@ void terminal_commands::configure_term(argument_type& arg) {
 			}
 
 			if (cl[2] == strings[cmds::col_set_value]) {
-				if (cl.size() == 3) {
+				if (cl.size() == 4) {
 					theme_color->reset();
 					return;
 				}
 				auto try_parse = [](std::string_view str, auto& value) {
 					auto res = std::from_chars(&str[0], &str[str.size() - 1] + 1, value, 10);
-					return misc::success(res.ec) && res.ptr == (&str[str.size()] + 1);
+					return misc::success(res.ec) && res.ptr == (&str[str.size() - 1] + 1);
 				};
 				std::uint8_t r{}, g{}, b{}, a{255};
 				if (!try_parse(cl[4], r) || !try_parse(cl[5], g) || !try_parse(cl[6], b) || (cl.size() == 8 && !try_parse(cl[7], a))) {
