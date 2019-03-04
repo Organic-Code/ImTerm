@@ -34,26 +34,29 @@
 
 namespace ImTerm {
 
+	// argument passed to commands
 	template<typename Terminal>
 	struct argument_t {
-		struct void_data {};
 		using value_type = misc::non_void_t<typename Terminal::value_type>;
 
-		value_type& val; // void_data if Terminal::value_type is void
-		Terminal& term;
+		value_type& val; // misc::details::structured_void if Terminal::value_type is void, reference to Terminal::value_type otherwise
+		Terminal& term; // reference to the ImTerm::terminal that called the command
 
-		std::vector<std::string> command_line;
+		std::vector<std::string> command_line; // list of arguments the user specified in the command line. command_line[0] is the command name
 	};
 
+	// structure used to represent a command
 	template<typename Terminal>
 	struct command_t {
 		using command_function = void (*)(argument_t<Terminal>&);
 		using further_completion_function = std::vector<std::string> (*)(argument_t<Terminal>& argument_line);
 
-		std::string_view name{};
-		std::string_view description{};
-		command_function call{};
-		further_completion_function complete{};
+		std::string_view name{}; // name of the command
+		std::string_view description{}; // short description
+		command_function call{}; // function doing whatever you want
+
+		further_completion_function complete{}; // function called when users starts typing in arguments for your command
+												// return a vector of strings containing possible completions.
 
 		friend constexpr bool operator<(const command_t& lhs, const command_t& rhs) {
 			return lhs.name < rhs.name;
@@ -85,18 +88,22 @@ namespace ImTerm {
 			};
 		};
 
-		severity::severity_t severity;
-		std::string value;
+		severity::severity_t severity; // severity of the message
+		std::string value; // text to be displayed
 
+		// the actual color used depends on the message's severity
 		size_t color_beg; // color begins at value.data() + color_beg
 		size_t color_end; // color ends at value.data() + color_end - 1
 		// if color_beg == color_end, nothing is colorized.
 
 		bool is_term_message; // if set to true, current msg is considered to be originated from the terminal,
-		// never filtered out by severity filter, and applying for different rules regarding colors
-		// severity is also ignored for such messages
+		                      // never filtered out by severity filter, and applying for different rules regarding colors.
+		                      // severity is also ignored for such messages
 	};
 
+	// Various settable colors for the terminal
+	// if an optional is empty, current ImGui color will be used
+	// theme examples can be found at the end of this file
 	struct theme {
 		struct constexpr_color {
 			float r,g,b,a;
@@ -106,41 +113,43 @@ namespace ImTerm {
 			}
 		};
 
-		std::string_view name;
+		std::string_view name; // if you want to give a name to the theme
 
-		std::optional<constexpr_color> text;
-		std::optional<constexpr_color> window_bg;
-		std::optional<constexpr_color> border;
-		std::optional<constexpr_color> border_shadow;
-		std::optional<constexpr_color> button;
-		std::optional<constexpr_color> button_hovered;
-		std::optional<constexpr_color> button_active;
-		std::optional<constexpr_color> frame_bg;
-		std::optional<constexpr_color> frame_bg_hovered;
-		std::optional<constexpr_color> frame_bg_active;
-		std::optional<constexpr_color> text_selected_bg;
-		std::optional<constexpr_color> check_mark;
-		std::optional<constexpr_color> title_bg;
-		std::optional<constexpr_color> title_bg_active;
-		std::optional<constexpr_color> title_bg_collapsed;
-		std::optional<constexpr_color> message_panel;
-		std::optional<constexpr_color> auto_complete_selected;
-		std::optional<constexpr_color> auto_complete_non_selected;
-		std::optional<constexpr_color> auto_complete_separator;
-		std::optional<constexpr_color> cmd_backlog;
-		std::optional<constexpr_color> cmd_history_completed;
-		std::optional<constexpr_color> log_level_drop_down_list_bg;
-		std::optional<constexpr_color> log_level_active;
-		std::optional<constexpr_color> log_level_hovered;
-		std::optional<constexpr_color> log_level_selected;
-		std::optional<constexpr_color> scrollbar_bg;
-		std::optional<constexpr_color> scrollbar_grab;
-		std::optional<constexpr_color> scrollbar_grab_active;
-		std::optional<constexpr_color> scrollbar_grab_hovered;
+		std::optional<constexpr_color> text;                        // global text color
+		std::optional<constexpr_color> window_bg;                   // ImGuiCol_WindowBg & ImGuiCol_ChildBg
+		std::optional<constexpr_color> border;                      // ImGuiCol_Border
+		std::optional<constexpr_color> border_shadow;               // ImGuiCol_BorderShadow
+		std::optional<constexpr_color> button;                      // ImGuiCol_Button
+		std::optional<constexpr_color> button_hovered;              // ImGuiCol_ButtonHovered
+		std::optional<constexpr_color> button_active;               // ImGuiCol_ButtonActive
+		std::optional<constexpr_color> frame_bg;                    // ImGuiCol_FrameBg
+		std::optional<constexpr_color> frame_bg_hovered;            // ImGuiCol_FrameBgHovered
+		std::optional<constexpr_color> frame_bg_active;             // ImGuiCol_FrameBgActive
+		std::optional<constexpr_color> text_selected_bg;            // ImGuiCol_TextSelectedBg, for text input field
+		std::optional<constexpr_color> check_mark;                  // ImGuiCol_CheckMark
+		std::optional<constexpr_color> title_bg;                    // ImGuiCol_TitleBg
+		std::optional<constexpr_color> title_bg_active;             // ImGuiCol_TitleBgActive
+		std::optional<constexpr_color> title_bg_collapsed;          // ImGuiCol_TitleBgCollapsed
+		std::optional<constexpr_color> message_panel;               // logging panel
+		std::optional<constexpr_color> auto_complete_selected;      // left-most text in the autocompletion OSD
+		std::optional<constexpr_color> auto_complete_non_selected;  // every text but the left most in the autocompletion OSD
+		std::optional<constexpr_color> auto_complete_separator;     // color for the separator in the autocompletion OSD
+		std::optional<constexpr_color> cmd_backlog;                 // color for message type user_input
+		std::optional<constexpr_color> cmd_history_completed;       // color for message type cmd_history_completion
+		std::optional<constexpr_color> log_level_drop_down_list_bg; // ImGuiCol_PopupBg
+		std::optional<constexpr_color> log_level_active;            // ImGuiCol_HeaderActive
+		std::optional<constexpr_color> log_level_hovered;           // ImGuiCol_HeaderHovered
+		std::optional<constexpr_color> log_level_selected;          // ImGuiCol_Header
+		std::optional<constexpr_color> scrollbar_bg;                // ImGuiCol_ScrollbarBg
+		std::optional<constexpr_color> scrollbar_grab;              // ImGuiCol_ScrollbarGrab
+		std::optional<constexpr_color> scrollbar_grab_active;       // ImGuiCol_ScrollbarGrabActive
+		std::optional<constexpr_color> scrollbar_grab_hovered;      // ImGuiCol_ScrollbarGrabHovered
 
-		std::array<std::optional<constexpr_color>, message::severity::critical + 1> log_level_colors{};
+		std::array<std::optional<constexpr_color>, message::severity::critical + 1> log_level_colors{}; // colors by severity
 	};
 
+	// checking that you can use a given class as a TerminalHelper
+	// giving human-friendlier error messages than just letting the compiler explode
 	namespace details {
 		template<typename TerminalHelper, typename CommandTypeCref>
 		struct assert_wellformed {
@@ -198,55 +207,65 @@ namespace ImTerm {
 
 		using terminal_helper_is_valid = details::assert_wellformed<TerminalHelper, command_type_cref>;
 
-		template <typename T = value_type, typename = std::enable_if_t<!std::is_same_v<T, misc::structured_void>>>
+		// You shall call this constructor you used a non void value_type
+		template <typename T = value_type, typename = std::enable_if_t<!std::is_same_v<T, misc::details::structured_void>>>
 		explicit terminal(value_type& arg_value, const char * window_name_ = "terminal", int base_width_ = 900,
 		                  int base_height_ = 200, std::shared_ptr<TerminalHelper> th = std::make_shared<TerminalHelper>())
 				: terminal(arg_value, window_name_, base_width_, base_height_, std::move(th), terminal_helper_is_valid{}) {}
 
-		template <typename T = value_type, typename = std::enable_if_t<std::is_same_v<T, misc::structured_void>>>
+
+		// You shall call this constructor you used a void value_type
+		template <typename T = value_type, typename = std::enable_if_t<std::is_same_v<T, misc::details::structured_void>>>
 		explicit terminal(const char * window_name_ = "terminal", int base_width_ = 900,
 		                  int base_height_ = 200, std::shared_ptr<TerminalHelper> th = std::make_shared<TerminalHelper>())
-		                  : terminal(misc::no_value, window_name_, base_width_, base_height_, std::move(th), terminal_helper_is_valid{}) {}
+		                  : terminal(misc::details::no_value, window_name_, base_width_, base_height_, std::move(th), terminal_helper_is_valid{}) {}
 
+		// Returns the underlying terminal helper
 		std::shared_ptr<TerminalHelper> get_terminal_helper() {
 			return m_t_helper;
 		}
 
+		// shows the terminal. Call at each frame (in a more ImGui style, this would be something like ImGui::terminal(....);
+		// returns true if the terminal thinks it should still be displayed next frame, false if it thinks it should be hidden
 		bool show() noexcept;
 
-		void hide() noexcept {
-			m_previously_active_id = 0;
-		}
-
+		// returns the command line history
 		const std::vector<std::string>& get_history() const noexcept {
 			return m_command_history;
 		}
 
+		// if invoked, the next call to "show" will return false
 		void set_should_close() noexcept {
 			m_close_request = true;
 		}
 
+		// clears all theme's optionals
 		void reset_colors() noexcept;
 
+		// returns current theme
 		struct theme& theme() {
 			return m_colors;
 		}
 
+		// set whether the autocompletion OSD should be above/under the text input, or if it should be disabled
 		void set_autocomplete_pos(position p) {
 			m_autocomplete_pos = p;
 		}
 
+		// returns current autocompletion position
 		position get_autocomplete_pos() const {
 			return m_autocomplete_pos;
 		}
 
 #ifdef IMTERM_FMT_INCLUDED
+		// logs a colorless text to the message panel
 		// added as terminal message with info severity
 		template <typename... Args>
 		void add_formatted(const char* fmt, Args&&... args) {
 			add_text(fmt::format(fmt, std::forward<Args>(args)...));
 		}
 
+		// logs a colorless text to the message panel
 		// added as terminal message with warn severity
 		template <typename... Args>
 		void add_formatted_err(const char* fmt, Args&&... args) {
@@ -254,34 +273,45 @@ namespace ImTerm {
 		}
 #endif
 
+		// logs a text to the message panel
 		// added as terminal message with info severity
 		void add_text(std::string str, unsigned int color_beg, unsigned int color_end);
 
+		// logs a text to the message panel, color spans from color_beg to the end of the message
+		// added as terminal message with info severity
 		void add_text(std::string str, unsigned int color_beg) {
 			add_text(str, color_beg, static_cast<unsigned>(str.size()));
 		}
 
+		// logs a colorless text to the message panel
+		// added as a terminal message with info severity,
 		void add_text(std::string str) {
 			add_text(str, 0, 0);
 		}
 
+		// logs a text to the message panel
 		// added as terminal message with warn severity
 		void add_text_err(std::string str, unsigned int color_beg, unsigned int color_end);
 
+		// logs a text to the message panel, color spans from color_beg to the end of the message
+		// added as terminal message with warn severity
 		void add_text_err(std::string str, unsigned int color_beg) {
 			add_text_err(str, color_beg, static_cast<unsigned>(str.size()));
 		}
 
+		// logs a colorless text to the message panel
+		// added as terminal message with warn severity
 		void add_text_err(std::string str) {
 			add_text_err(str, 0, 0);
 		}
 
+		// logs a message to the message panel
 		void add_message(const message& msg) {
 			add_message(message{msg});
 		}
-
 		void add_message(message&& msg);
 
+		// clears the message panel
 		void clear();
 
 	private:

@@ -35,22 +35,25 @@ namespace misc {
 		}
 	};
 
-	struct structured_void {};
-	inline structured_void no_value{};
+	namespace details {
+		struct structured_void {};
+		inline structured_void no_value{};
 
+		template <typename T>
+		struct non_void {
+			using type = T;
+		};
+		template <>
+		struct non_void<void> {
+			using type = structured_void;
+		};
+	}
+	// type T if T is non void, details::structured void otherwise
 	template <typename T>
-	struct non_void {
-		using type = T;
-	};
-	template <>
-	struct non_void<void> {
-		using type = structured_void;
-	};
-	template <typename T>
-	using non_void_t = typename non_void<T>::type;
+	using non_void_t = typename details::non_void<T>::type;
 
 
-
+	// Returns the length of the given byte string, at most buffer_size
 	constexpr unsigned int strnlen(const char* beg, unsigned int buffer_size) {
 		unsigned int len = 0;
 		while (len < buffer_size && beg[len] != '\0') {
@@ -74,6 +77,7 @@ namespace misc {
 		return true;
 	}
 
+	// returns the length of the longest element of the list, minimum 0
 	template <typename ForwardIt, typename EndIt, typename SizeExtractor>
 	constexpr auto max_size(ForwardIt it, EndIt last, SizeExtractor&& size_of) -> decltype(size_of(*it)){
 		using size_type = decltype(size_of(*it));
@@ -87,6 +91,7 @@ namespace misc {
 		return max_size;
 	}
 
+	// copies until it reaches the end of any of the two collections
 	template <typename ForwardIt, typename OutputIt>
 	constexpr void copy(ForwardIt src_beg, ForwardIt src_end, OutputIt dest_beg, OutputIt dest_end) {
 		while(src_beg != src_end && dest_beg != dest_end) {
@@ -94,6 +99,7 @@ namespace misc {
 		}
 	}
 
+	// same as misc::copy, but in reversed order
 	template <typename BidirIt1, typename BidirIt2>
 	constexpr void copy_backward(BidirIt1 src_beg, BidirIt1 src_end, BidirIt2 dest_beg, BidirIt2 dest_end) {
 		auto copy_length = std::distance(src_beg, src_end);
@@ -109,7 +115,7 @@ namespace misc {
 	}
 
 	// Returns new end of dest collection
-	// does as if the n first values of dest where non existant
+	// ignores the n first values of the destination
 	template <typename ForwardIt, typename RandomAccessIt>
 	constexpr RandomAccessIt erase_insert(ForwardIt src_beg, ForwardIt src_end, RandomAccessIt dest_beg, RandomAccessIt dest_end, RandomAccessIt dest_max, unsigned int n) {
 		n = std::min(static_cast<unsigned>(std::distance(dest_beg, dest_end)), n);
@@ -130,6 +136,7 @@ namespace misc {
 		}
 	}
 
+	// returns the last element in the range [begin, end) that is equal to val, returns end if there is no such element
 	template <typename ForwardIterator, typename ValueType>
 	constexpr ForwardIterator find_last(ForwardIterator begin, ForwardIterator end, const ValueType& val) {
 		auto rend = std::reverse_iterator(begin);
@@ -141,7 +148,7 @@ namespace misc {
 		return std::prev(search.base());
 	}
 
-	// returns an iterator to the first character that has no a space after him
+	// Returns an iterator to the first character that has no a space after him
 	template <typename ForwardIterator, typename SpaceDetector>
 	constexpr ForwardIterator find_terminating_word(ForwardIterator begin, ForwardIterator end, SpaceDetector&& is_space_pred) {
 		auto rend = std::reverse_iterator(begin);
@@ -166,9 +173,9 @@ namespace misc {
 		return ec == std::errc{};
 	}
 
-	/// Search any element matching "prefix" in the collection formed by [c_beg, c_end)
-	/// str_ext must map types *ForwardIt() to std::string_view
-	/// transform is whatever transformation you want to do to the matching elements.
+	// Search any element starting by "prefix" in the sorted collection formed by [c_beg, c_end)
+	// str_ext must map dectype(*c_beg) to std::string_view
+	// transform is whatever transformation you want to do to the matching elements.
 	template <typename ForwardIt, typename StrExtractor = identity, typename Transform = identity>
 	auto prefix_search(std::string_view prefix, ForwardIt c_beg, ForwardIt c_end,
 			StrExtractor&& str_ext = {}, Transform&& transform = {}) -> std::vector<decltype(transform(*c_beg))> {
@@ -184,6 +191,9 @@ namespace misc {
 		return ans;
 	}
 
+	// returns an iterator to the first element starting by "prefix"
+	// is_space is a predicate returning a value greater than 0 if a given string_view starts by a space and 0 otherwise
+	// str_ext is an unary functor maping decltype(*beg) to std::string_view
 	template <typename ForwardIt, typename IsSpace, typename StrExtractor = identity>
 	ForwardIt find_first_prefixed(std::string_view prefix, ForwardIt beg, ForwardIt end, IsSpace&& is_space, StrExtractor&& str_ext = {}) {
 		// std::string_view::start_with is C++20
@@ -223,13 +233,15 @@ namespace misc {
 	template <template<typename...> typename Op, typename... Args>
 	using is_detected_t = typename is_detected <Op, Args...>::type;
 
-
+	// compile time function detection, return type agnostic
 	template <template<typename...> typename Op, typename... Args>
 	constexpr bool is_detected_v = is_detected<Op, Args...>::value;
 
+	// compile time function detection
 	template <template<typename...> typename Op, typename ReturnType, typename... Args>
 	constexpr bool is_detected_with_return_type_v = std::is_same_v<is_detected_t<Op, Args...>, ReturnType>;
 
+	// dummy mutex
 	struct no_mutex {
 		constexpr no_mutex() noexcept = default;
 		constexpr void lock() {}

@@ -30,6 +30,7 @@
 #include "spdlog/sinks/base_sink.h"
 
 #define IMTERM_SPDLOG_INCLUDED
+// helpers
 namespace ImTerm::details {
 	constexpr message::severity::severity_t to_imterm_severity(spdlog::level::level_enum);
 	constexpr spdlog::level::level_enum to_spdlog_severity(message::severity::severity_t);
@@ -55,10 +56,10 @@ namespace ImTerm {
 		// mandatory : return every command starting by prefix
 		std::vector<command_type_cref> find_commands_by_prefix(std::string_view prefix) {
 
-			auto compare_name = [](const command_type& cmd) { return cmd.name; };
+			auto compare_by_name = [](const command_type& cmd) { return cmd.name; };
 			auto map_to_cref = [](const command_type& cmd) { return std::cref(cmd); };
 
-			return misc::prefix_search(prefix, cmd_list.begin(), cmd_list.end(), std::move(compare_name), std::move(map_to_cref));
+			return misc::prefix_search(prefix, cmd_list.begin(), cmd_list.end(), std::move(compare_by_name), std::move(map_to_cref));
 		}
 
 		// mandatory : return every command starting by the text formed by [beg, end)
@@ -107,7 +108,7 @@ namespace ImTerm {
 		static std::vector<std::string> no_completion(std::string_view) { return {}; }
 
 		static void clear(argument_type& arg) {
-			arg.ImTerm.clear();
+			arg.term.clear();
 		}
 
 		static void echo(argument_type& arg) {
@@ -223,7 +224,6 @@ namespace ImTerm {
 
 		virtual ~basic_spdlog_terminal_helper() noexcept = default;
 
-
 		std::optional<ImTerm::message> format(std::string str, [[maybe_unused]] ImTerm::message::type type) {
 			spdlog::details::log_msg msg({}, &logger_name_, {}, str);
 			fmt::memory_buffer buff{};
@@ -234,10 +234,13 @@ namespace ImTerm {
 			return term_msg;
 		}
 
+		// this method is called automatically right after ImTerm::terminal's construction
+		// used to sink logs to the message panel
 		void set_terminal(term_t& term) {
 			terminal_ = &term;
 		}
 
+		// set logging pattern per message type, for feed-back messages from the terminal
 		void set_terminal_pattern(const std::string& pattern, ImTerm::message::type type) {
 			std::lock_guard<Mutex> lock(SinkBase::mutex_);
 			set_terminal_pattern_(std::make_unique<spdlog::pattern_formatter>(pattern), type);
