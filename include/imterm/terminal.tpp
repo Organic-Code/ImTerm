@@ -728,10 +728,9 @@ std::pair<bool, std::string> terminal<TerminalHelper>::resolve_history_reference
 	ans.reserve(str.size());
 
 	auto substr_beg = str.data();
-	auto it = std::next(substr_beg);
+	auto it = substr_beg;
 
-	state current_state = (*substr_beg == '!') ? state::part_1 : state::nothing;
-	bool escaped = (*substr_beg == '\\');
+	state current_state = state::nothing;
 
 	auto resolve = [&](std::string_view history_request, bool add_escaping = true) -> bool {
 		bool local_modified{};
@@ -763,10 +762,30 @@ std::pair<bool, std::string> terminal<TerminalHelper>::resolve_history_reference
 		return true;
 	};
 
-	while (it != str.data() + str.size()) {
+	const char* const end = str.data() + str.size();
+	while (it != end) {
+
+		if (*it == '\\') {
+			do {
+				++it;
+				if (it != end) {
+					++it;
+				}
+			} while (it != end && *it == '\\');
+
+			if (current_state != state::nothing) {
+				return {false, {substr_beg, it}};
+			}
+
+			if (it == end) {
+				break;
+			}
+		}
+
+
 		switch (current_state) {
 			case state::nothing:
-				if (*it == '!' && !escaped) {
+				if (*it == '!') {
 					current_state = state::part_1;
 					ans += std::string_view{substr_beg, static_cast<unsigned>(it - substr_beg)};
 					substr_beg = it;
@@ -818,11 +837,12 @@ std::pair<bool, std::string> terminal<TerminalHelper>::resolve_history_reference
 					if (!resolve({substr_beg, static_cast<unsigned>(it - substr_beg)})) {
 						return {false, {substr_beg, it}};
 					}
+					substr_beg = it;
+					continue; // we should loop without incrementing the pointer ; current character was not parsed
 				}
 				break;
 		}
 
-		escaped = (*it == '\\');
 		++it;
 	}
 
