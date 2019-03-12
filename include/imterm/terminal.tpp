@@ -83,11 +83,13 @@ terminal<TerminalHelper>::terminal(value_type& arg_value, const char* window_nam
 		, m_clear_text{"clear"}
 		, m_log_level_text{"log level"}
 		, m_autowrap_text{"autowrap"}
+		, m_filter_hint{"filter..."}
 {
 	assert(m_t_helper != nullptr);
 	details::assign_terminal(*m_t_helper, *this);
 
 	std::fill(m_command_buffer.begin(), m_command_buffer.end(), '\0');
+	std::fill(m_log_text_filter_buffer.begin(), m_log_text_filter_buffer.end(), '\0');
 	set_level_list_text("trace", "debug", "info", "warning", "error", "critical", "none");
 }
 
@@ -128,7 +130,6 @@ bool terminal<TerminalHelper>::show() noexcept {
 	pop_count += try_push_style(ImGuiCol_ScrollbarGrab, m_colors.scrollbar_grab);
 	pop_count += try_push_style(ImGuiCol_ScrollbarGrabActive, m_colors.scrollbar_grab_active);
 	pop_count += try_push_style(ImGuiCol_ScrollbarGrabHovered, m_colors.scrollbar_grab_hovered);
-
 
 	if (m_has_focus) {
 		ImGui::PushStyleColor(ImGuiCol_TitleBg, ImGui::GetStyleColorVec4(ImGuiCol_TitleBgActive));
@@ -330,10 +331,10 @@ void terminal<TerminalHelper>::display_settings_bar() noexcept {
 	};
 
 	if (m_clear_text) {
+		same_line();
 		if (ImGui::Button(m_clear_text->data())) {
 			clear();
 		}
-		same_line_req = true;
 	}
 
 	if (m_autowrap_text) {
@@ -344,6 +345,21 @@ void terminal<TerminalHelper>::display_settings_bar() noexcept {
 	if (m_autoscroll_text) {
 		same_line();
 		ImGui::Checkbox(m_autoscroll_text->data(), &m_autoscroll);
+	}
+
+	if (m_filter_hint) {
+		same_line();
+
+		int pop_count = try_push_style(ImGuiCol_TextDisabled, m_colors.filter_hint);
+		pop_count += try_push_style(ImGuiCol_Text, m_colors.filter_text);
+
+		ImGui::PushItemWidth(std::max(ImGui::GetContentRegionAvailWidth() - m_selector_size_global->x, ImGui::CalcTextSize(m_filter_hint->data()).x));
+		if (ImGui::InputTextWithHint("##terminal:settings:text_filter", m_filter_hint->data(), m_log_text_filter_buffer.data(), m_log_text_filter_buffer.size())) {
+			m_log_text_filter_buffer_usage = misc::strnlen(m_log_text_filter_buffer.data(), m_log_text_filter_buffer.size());
+		}
+		ImGui::PopItemWidth();
+
+		ImGui::PopStyleColor(pop_count);
 	}
 
 	if (m_log_level_text && m_selector_size_global) {
@@ -380,6 +396,14 @@ void terminal<TerminalHelper>::display_messages() noexcept {
 			for (const message& msg : m_logs) {
 				if (msg.severity < (m_level + m_lowest_log_level_val) && !msg.is_term_message) {
 					continue;
+				}
+
+				if (m_log_text_filter_buffer_usage != 0) {
+					std::string_view filter{m_log_text_filter_buffer.data(), m_log_text_filter_buffer_usage};
+					auto it = std::search(msg.value.begin(), msg.value.end(), filter.begin(), filter.end());
+					if (it == msg.value.end()) {
+						continue;
+					}
 				}
 
 				if (msg.color_beg < msg.color_end) {

@@ -144,6 +144,8 @@ namespace ImTerm {
 		std::optional<constexpr_color> scrollbar_grab;              // ImGuiCol_ScrollbarGrab
 		std::optional<constexpr_color> scrollbar_grab_active;       // ImGuiCol_ScrollbarGrabActive
 		std::optional<constexpr_color> scrollbar_grab_hovered;      // ImGuiCol_ScrollbarGrabHovered
+		std::optional<constexpr_color> filter_hint;                 // ImGuiCol_TextDisabled
+		std::optional<constexpr_color> filter_text;                 // user input in log filter
 
 		std::array<std::optional<constexpr_color>, message::severity::critical + 1> log_level_colors{}; // colors by severity
 	};
@@ -187,9 +189,7 @@ namespace ImTerm {
 					"See term::terminal_helper_example for reference");
 		};
 	}
-
-	// fixme: "echo !:0 !:0" with no space
-	// fixme: "echo !:0!:0"
+	
 	template<typename TerminalHelper>
 	class terminal {
 	public:
@@ -200,6 +200,7 @@ namespace ImTerm {
 		};
 
 		using buffer_type = std::array<char, 1024>;
+		using small_buffer_type = std::array<char, 128>;
 		using value_type = misc::non_void_t<typename TerminalHelper::value_type>;
 		using command_type = command_t<terminal<TerminalHelper>>;
 		using command_type_cref = std::reference_wrapper<const command_type>;
@@ -227,6 +228,7 @@ namespace ImTerm {
 
 		// shows the terminal. Call at each frame (in a more ImGui style, this would be something like ImGui::terminal(....);
 		// returns true if the terminal thinks it should still be displayed next frame, false if it thinks it should be hidden
+		// return value is true except if a command required a close, or if the "escape" key was pressed.
 		bool show() noexcept;
 
 		// returns the command line history
@@ -333,9 +335,15 @@ namespace ImTerm {
 		}
 
 		// returns the text used to label the drop down list used to select the minimum severity to be displayed
-		// set it to an empty optional if you don't want the drop down list
+		// set it to an empty optional if you don't want the drop down list to be displayed
 		std::optional<std::string>& log_level_text() noexcept {
 			return m_log_level_text;
+		}
+
+		// returns the text used to label the text input used to filter out logs
+		// set it to an empty optional if you don't want the filter to be displayed
+		std::optional<std::string>& filter_hint() noexcept {
+			return m_filter_hint;
 		}
 
 		// allows you to set the text in the log_level drop down list
@@ -433,6 +441,7 @@ namespace ImTerm {
 		std::optional<std::string> m_clear_text;
 		std::optional<std::string> m_log_level_text;
 		std::optional<std::string> m_autowrap_text;
+		std::optional<std::string> m_filter_hint;
 		std::string m_level_list_text{};
 		const char* m_longest_log_level{nullptr}; // points to the longest log level, in m_level_list_text
 		const char* m_lowest_log_level{nullptr}; // points to the lowest log level possible, in m_level_list_text
@@ -440,6 +449,8 @@ namespace ImTerm {
 
 		std::optional<ImVec2> m_selector_size_global{};
 		ImVec2 m_selector_label_size{};
+		small_buffer_type m_log_text_filter_buffer{};
+		small_buffer_type::size_type m_log_text_filter_buffer_usage{0u};
 
 
 		// message panel variables
@@ -510,6 +521,8 @@ namespace ImTerm {
 				theme::constexpr_color{0.470f, 0.470f, 0.588f, 1.000f}, //scrollbar_grab
 				theme::constexpr_color{0.392f, 0.392f, 0.509f, 1.000f}, //scrollbar_grab_active
 				theme::constexpr_color{0.509f, 0.509f, 0.666f, 1.000f}, //scrollbar_grab_hovered
+				theme::constexpr_color{0.470f, 0.470f, 0.470f, 1.000f}, //filter_hint
+				{}, // filter_text
 				{
 					theme::constexpr_color{0.078f, 0.117f, 0.764f, 1.f}, // log_level::trace
 					{}, // log_level::debug
@@ -551,6 +564,8 @@ namespace ImTerm {
 			theme::constexpr_color{0.690f, 0.690f, 0.690f, 0.800f}, //scrollbar_grab
 			theme::constexpr_color{0.490f, 0.490f, 0.490f, 0.800f}, //scrollbar_grab_active
 			theme::constexpr_color{0.490f, 0.490f, 0.490f, 1.000f}, //scrollbar_grab_hovered
+			{}, //filter_hint
+			theme::constexpr_color{1.000f, 1.000f, 1.000f, 1.000f}, //filter_text
 			{
 				theme::constexpr_color{0.549f, 0.561f, 0.569f, 1.f}, // log_level::trace
 				theme::constexpr_color{0.153f, 0.596f, 0.498f, 1.f}, // log_level::debug

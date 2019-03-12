@@ -60,6 +60,7 @@ namespace {
 				csv_cmd_backlog,
 				csv_cmd_history_completed,
 				csv_check_mark,
+				csv_filter,
 				csv_frame_bg,
 				csv_frame_bg_active,
 				csv_frame_bg_hovered,
@@ -91,6 +92,7 @@ namespace {
 				st_autowrap,
 				st_clear,
 				st_log_level,
+				st_filter,
 				st_optional_end,
 				st_logs = st_optional_end,
 				st_end,
@@ -120,6 +122,7 @@ namespace {
 				"cmd_backlog",
 				"cmd_history_completed",
 				"check_mark",
+				"filter_hint",
 				"frame_bg",
 				"frame_bg_active",
 				"frame_bg_hovered",
@@ -149,6 +152,7 @@ namespace {
 				"autowrap",
 				"clear",
 				"log_level",
+				"filter_hint",
 				"logs",
 		};
 	}
@@ -228,6 +232,7 @@ void terminal_commands::configure_term(argument_type& arg) {
 				case cmds::csv_button:                     theme_color = &arg.term.theme().button;                      break;
 				case cmds::csv_button_hovered:             theme_color = &arg.term.theme().button_hovered;              break;
 				case cmds::csv_button_active:              theme_color = &arg.term.theme().button_active;               break;
+				case cmds::csv_filter:                     theme_color = &arg.term.theme().filter_hint;                 break;
 				case cmds::csv_frame_bg:                   theme_color = &arg.term.theme().frame_bg;                    break;
 				case cmds::csv_frame_bg_hovered:           theme_color = &arg.term.theme().frame_bg_hovered;            break;
 				case cmds::csv_frame_bg_active:            theme_color = &arg.term.theme().frame_bg_active;             break;
@@ -309,6 +314,7 @@ void terminal_commands::configure_term(argument_type& arg) {
 				case cmds::st_autowrap:   str = &arg.term.autowrap_text();   break;
 				case cmds::st_clear:      str = &arg.term.clear_text();      break;
 				case cmds::st_log_level:  str = &arg.term.log_level_text();  break;
+				case cmds::st_filter:     str = &arg.term.filter_hint();     break;
 				default:
 					arg.term.add_text_err("Internal error.");
 					return;
