@@ -94,7 +94,7 @@ terminal<TerminalHelper>::terminal(value_type& arg_value, const char* window_nam
 }
 
 template <typename TerminalHelper>
-bool terminal<TerminalHelper>::show() noexcept {
+bool terminal<TerminalHelper>::show(const std::vector<config_panels>& panels_order) noexcept {
 	if (m_flush_bit) {
 		m_last_flush_at_history = m_command_history.size();
 		m_flush_bit = false;
@@ -143,8 +143,7 @@ bool terminal<TerminalHelper>::show() noexcept {
 		return true;
 	}
 
-	compute_text_size();
-	display_settings_bar();
+	display_settings_bar(panels_order);
 	display_messages();
 	display_command_line();
 
@@ -264,7 +263,6 @@ void terminal<TerminalHelper>::set_min_log_level(message::severity::severity_t l
 	for (int i = level ; i > 0 ; --i) {
 		m_lowest_log_level += std::strlen(m_lowest_log_level) + 1;
 	}
-	m_selector_size_global.reset();
 
 	m_longest_log_level = "";
 	std::size_t longest_len = 0u;
@@ -304,23 +302,56 @@ void terminal<TerminalHelper>::try_log(std::string_view str, message::type type)
 }
 
 template <typename TerminalHelper>
-void terminal<TerminalHelper>::compute_text_size() noexcept {
-	if (m_log_level_text) {
-		if (!m_selector_size_global) {
-			m_selector_label_size = ImGui::CalcTextSize(m_log_level_text->data());
-			m_selector_label_size.x += ImGui::GetStyle().ItemSpacing.x;
-			m_selector_size_global = ImGui::CalcTextSize(m_longest_log_level);
-			m_selector_size_global->x +=
-					m_selector_label_size.x + ImGui::GetStyle().ItemInnerSpacing.x * 3 + ImGui::GetFrameHeight();
-			m_selector_size_global->y += m_selector_label_size.y;
-		}
-	} else {
-		m_selector_size_global.reset();
+void terminal<TerminalHelper>::display_settings_bar(const std::vector<config_panels>& panels_order) noexcept {
+	if (panels_order.empty()) {
+		return;
 	}
-}
+	if (!m_autoscroll_text && !m_autowrap_text && !m_clear_text && !m_filter_hint && !m_log_level_text) {
+		return;
+	}
 
-template <typename TerminalHelper>
-void terminal<TerminalHelper>::display_settings_bar() noexcept {
+	const float autoscroll_size = !m_autoscroll_text ? 0.f : ImGui::CalcTextSize(m_autoscroll_text->data()).x + ImGui::GetFrameHeight() + ImGui::GetStyle().ItemInnerSpacing.x;
+
+	const float autowrap_size = !m_autowrap_text ? 0.f : ImGui::CalcTextSize(m_autowrap_text->data()).x + ImGui::GetFrameHeight() + ImGui::GetStyle().ItemInnerSpacing.x;
+
+	const float clearbutton_size = !m_clear_text ? 0.f : ImGui::CalcTextSize(m_clear_text->data()).x + ImGui::GetStyle().FramePadding.x * 2.f;
+
+	const float filter_size = !m_filter_hint ? 0.f : ImGui::CalcTextSize(m_filter_hint->data()).x + ImGui::GetStyle().FramePadding.x * 2.f;
+
+	const float loglevel_selector_size = !m_log_level_text ? 0.f : ImGui::CalcTextSize(m_longest_log_level).x + ImGui::GetFrameHeight() + ImGui::GetStyle().ItemInnerSpacing.x * 2.f;
+
+	const float loglevel_global_size = !m_log_level_text ? 0.f : ImGui::CalcTextSize(m_log_level_text->data()).x + ImGui::GetStyle().ItemSpacing.x + loglevel_selector_size;
+
+	unsigned space_consumer_count = 0u;
+	float required_space = ImGui::GetStyle().ItemSpacing.x * (panels_order.size() - 1);
+	for (config_panels panel : panels_order) {
+		switch (panel) {
+			case config_panels::autoscroll:
+				required_space += autoscroll_size;
+				break;
+			case config_panels::autowrap:
+				required_space += autowrap_size;
+				break;
+			case config_panels::clearbutton:
+				required_space += clearbutton_size;
+				break;
+			case config_panels::filter:
+				required_space += filter_size;
+				break;
+			case config_panels::loglevel:
+				required_space += loglevel_global_size;
+				break;
+			case config_panels::long_filter:
+				[[fallthrough]];
+			case config_panels::blank:
+				++space_consumer_count;
+				break;
+			default:
+				break;
+		}
+	}
+
+	float consumer_width = std::max((ImGui::GetContentRegionAvailWidth() - required_space) / static_cast<float>(space_consumer_count), 0.1f);
 
 	bool same_line_req{false};
 	auto same_line = [&same_line_req]() {
@@ -330,59 +361,88 @@ void terminal<TerminalHelper>::display_settings_bar() noexcept {
 		same_line_req = true;
 	};
 
-	if (m_clear_text) {
-		same_line();
-		if (ImGui::Button(m_clear_text->data())) {
-			clear();
+	auto show_filter = [this](float size) {
+		if (m_filter_hint) {
+
+			int pop_count = try_push_style(ImGuiCol_TextDisabled, m_colors.filter_hint);
+			pop_count += try_push_style(ImGuiCol_Text, m_colors.filter_text);
+
+			ImGui::PushItemWidth(size);
+			if (ImGui::InputTextWithHint("##terminal:settings:text_filter", m_filter_hint->data(), m_log_text_filter_buffer.data(), m_log_text_filter_buffer.size())) {
+				m_log_text_filter_buffer_usage = misc::strnlen(m_log_text_filter_buffer.data(), m_log_text_filter_buffer.size());
+			}
+			ImGui::PopItemWidth();
+
+			ImGui::PopStyleColor(pop_count);
+		} else {
+			ImGui::Dummy(ImVec2(size, 1.f));
 		}
-	}
+	};
 
-	if (m_autowrap_text) {
-		same_line();
-		ImGui::Checkbox(m_autowrap_text->data(), &m_autowrap);
-	}
+	for (unsigned int i = 0 ; i < panels_order.size() ; ++i) {
+		ImGui::PushID(i);
+		switch (panels_order[i]) {
+			case config_panels::autoscroll:
+				if (m_autoscroll_text) {
+					ImGui::Checkbox(m_autoscroll_text->data(), &m_autoscroll);
+				} else {
+					ImGui::Dummy(ImVec2(autoscroll_size, 1.f));
+				}
+				break;
+			case config_panels::autowrap:
+				if (m_autowrap_text) {
+					ImGui::Checkbox(m_autowrap_text->data(), &m_autowrap);
+				} else {
+					ImGui::Dummy(ImVec2(autowrap_size, 1.f));
+				}
+				break;
+			case config_panels::blank:
+				ImGui::Dummy(ImVec2(consumer_width, 1.f));
+				break;
+			case config_panels::clearbutton:
+				if (m_clear_text) {
+					if (ImGui::Button(m_clear_text->data())) {
+						clear();
+					}
+				} else {
+					ImGui::Dummy(ImVec2(clearbutton_size, 1.f));
+				}
+				break;
+			case config_panels::filter:
+				show_filter(filter_size);
+				break;
+			case config_panels::long_filter:
+				show_filter(consumer_width);
+				break;
+			case config_panels::loglevel:
+				if (m_log_level_text) {
+					ImGui::TextUnformatted(m_log_level_text->data(), m_log_level_text->data() + m_log_level_text->size());
 
-	if (m_autoscroll_text) {
-		same_line();
-		ImGui::Checkbox(m_autoscroll_text->data(), &m_autoscroll);
-	}
-
-	if (m_filter_hint) {
-		same_line();
-
-		int pop_count = try_push_style(ImGuiCol_TextDisabled, m_colors.filter_hint);
-		pop_count += try_push_style(ImGuiCol_Text, m_colors.filter_text);
-
-		ImGui::PushItemWidth(std::max(ImGui::GetContentRegionAvailWidth() - m_selector_size_global->x, ImGui::CalcTextSize(m_filter_hint->data()).x));
-		if (ImGui::InputTextWithHint("##terminal:settings:text_filter", m_filter_hint->data(), m_log_text_filter_buffer.data(), m_log_text_filter_buffer.size())) {
-			m_log_text_filter_buffer_usage = misc::strnlen(m_log_text_filter_buffer.data(), m_log_text_filter_buffer.size());
+					ImGui::SameLine();
+					ImGui::PushItemWidth(loglevel_selector_size);
+					ImGui::Combo("##terminal:log_level_selector:combo", &m_level, m_lowest_log_level);
+					ImGui::PopItemWidth();
+				} else {
+					ImGui::Dummy(ImVec2(loglevel_global_size, 1.f));
+				}
+				break;
+			default:
+				break;
 		}
-		ImGui::PopItemWidth();
-
-		ImGui::PopStyleColor(pop_count);
-	}
-
-	if (m_log_level_text && m_selector_size_global) {
-		same_line();
-		ImGui::Dummy(ImVec2(std::max(ImGui::GetContentRegionAvailWidth() - m_selector_size_global->x, 0.f), 1));
-
+		ImGui::PopID();
 		ImGui::SameLine();
-		ImGui::TextUnformatted(m_log_level_text->data(), m_log_level_text->data() + m_log_level_text->size());
-
-		ImGui::SameLine();
-		ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth());
-		ImGui::Combo("##terminal:log_level_selector:combo", &m_level, m_lowest_log_level);
-		ImGui::PopItemWidth();
 	}
+	ImGui::NewLine();
 }
 
 template <typename TerminalHelper>
 void terminal<TerminalHelper>::display_messages() noexcept {
 	ImVec2 avail_space = ImGui::GetContentRegionAvail();
-	if (avail_space.y > m_selector_size_global->y) {
+	float commandline_height = ImGui::CalcTextSize("a").y + ImGui::GetStyle().FramePadding.y * 4.f;
+	if (avail_space.y > commandline_height) {
 
 		int style_push_count = try_push_style(ImGuiCol_ChildBg, m_colors.message_panel);
-		if (ImGui::BeginChild("terminal:logs_window", ImVec2(avail_space.x, avail_space.y - m_selector_size_global->y), false,
+		if (ImGui::BeginChild("terminal:logs_window", ImVec2(avail_space.x, avail_space.y - commandline_height), false,
 		                      ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoTitleBar)) {
 
 			unsigned traced_count = 0;
@@ -583,7 +643,7 @@ void terminal<TerminalHelper>::show_autocomplete() noexcept {
 		ImVec2 auto_complete_pos = ImGui::GetItemRectMin();
 
 		if (m_autocomplete_pos == position::up) {
-			auto_complete_pos.y -= (m_selector_size_global->y + 3);
+			auto_complete_pos.y -= (ImGui::CalcTextSize("a").y + ImGui::GetStyle().FramePadding.y) * 2.f;
 		} else {
 			auto_complete_pos.y = ImGui::GetItemRectMax().y;
 		}

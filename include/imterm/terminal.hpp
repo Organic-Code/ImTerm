@@ -150,6 +150,19 @@ namespace ImTerm {
 		std::array<std::optional<constexpr_color>, message::severity::critical + 1> log_level_colors{}; // colors by severity
 	};
 
+	enum class config_panels {
+		autoscroll,
+		autowrap,
+		clearbutton,
+		filter,
+		long_filter, // like filter, but takes up space
+		loglevel,
+		blank, // invisible panel that takes up place, aligning items to the right. More than one can be used, splitting up the consumed space
+				// ie: {clearbutton (C), blank, filter (F), blank, loglevel (L)} will result in the layout [C           F           L]
+				// Shares space with long_filter
+		none
+	};
+
 	// checking that you can use a given class as a TerminalHelper
 	// giving human-friendlier error messages than just letting the compiler explode
 	namespace details {
@@ -189,7 +202,7 @@ namespace ImTerm {
 					"See term::terminal_helper_example for reference");
 		};
 	}
-	
+
 	template<typename TerminalHelper>
 	class terminal {
 	public:
@@ -207,6 +220,9 @@ namespace ImTerm {
 		using argument_type = argument_t<terminal>;
 
 		using terminal_helper_is_valid = details::assert_wellformed<TerminalHelper, command_type_cref>;
+
+		inline static const std::vector<config_panels> DEFAULT_ORDER = {config_panels::clearbutton,
+				  config_panels::autoscroll, config_panels::autowrap, config_panels::long_filter, config_panels::loglevel};
 
 		// You shall call this constructor you used a non void value_type
 		template <typename T = value_type, typename = std::enable_if_t<!std::is_same_v<T, misc::details::structured_void>>>
@@ -229,7 +245,7 @@ namespace ImTerm {
 		// shows the terminal. Call at each frame (in a more ImGui style, this would be something like ImGui::terminal(....);
 		// returns true if the terminal thinks it should still be displayed next frame, false if it thinks it should be hidden
 		// return value is true except if a command required a close, or if the "escape" key was pressed.
-		bool show() noexcept;
+		bool show(const std::vector<config_panels>& panels_order = DEFAULT_ORDER) noexcept;
 
 		// returns the command line history
 		const std::vector<std::string>& get_history() const noexcept {
@@ -364,7 +380,7 @@ namespace ImTerm {
 
 		void compute_text_size() noexcept;
 
-		void display_settings_bar() noexcept;
+		void display_settings_bar(const std::vector<config_panels>& panels_order) noexcept;
 
 		void display_messages() noexcept;
 
@@ -447,8 +463,6 @@ namespace ImTerm {
 		const char* m_lowest_log_level{nullptr}; // points to the lowest log level possible, in m_level_list_text
 		message::severity::severity_t m_lowest_log_level_val{message::severity::trace};
 
-		std::optional<ImVec2> m_selector_size_global{};
-		ImVec2 m_selector_label_size{};
 		small_buffer_type m_log_text_filter_buffer{};
 		small_buffer_type::size_type m_log_text_filter_buffer_usage{0u};
 
