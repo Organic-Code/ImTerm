@@ -146,6 +146,7 @@ namespace ImTerm {
 		std::optional<constexpr_color> scrollbar_grab_hovered;      // ImGuiCol_ScrollbarGrabHovered
 		std::optional<constexpr_color> filter_hint;                 // ImGuiCol_TextDisabled
 		std::optional<constexpr_color> filter_text;                 // user input in log filter
+		std::optional<constexpr_color> matching_text;               // text matching the log filter
 
 		std::array<std::optional<constexpr_color>, message::severity::critical + 1> log_level_colors{}; // colors by severity
 	};
@@ -536,10 +537,11 @@ namespace ImTerm {
 				theme::constexpr_color{0.392f, 0.392f, 0.509f, 1.000f}, //scrollbar_grab_active
 				theme::constexpr_color{0.509f, 0.509f, 0.666f, 1.000f}, //scrollbar_grab_hovered
 				theme::constexpr_color{0.470f, 0.470f, 0.470f, 1.000f}, //filter_hint
-				{}, // filter_text
+				theme::constexpr_color{0.100f, 0.100f, 0.100f, 1.000f}, //filter_text
+				theme::constexpr_color{0.549f, 0.196f, 0.039f, 1.000f}, //matching_text
 				{
 					theme::constexpr_color{0.078f, 0.117f, 0.764f, 1.f}, // log_level::trace
-					{}, // log_level::debug
+					theme::constexpr_color{0.100f, 0.100f, 0.100f, 1.f}, // log_level::debug
 					theme::constexpr_color{0.301f, 0.529f, 0.000f, 1.f}, // log_level::info
 					theme::constexpr_color{0.784f, 0.431f, 0.058f, 1.f}, // log_level::warning
 					theme::constexpr_color{0.901f, 0.117f, 0.117f, 1.f}, // log_level::error
@@ -578,8 +580,9 @@ namespace ImTerm {
 			theme::constexpr_color{0.690f, 0.690f, 0.690f, 0.800f}, //scrollbar_grab
 			theme::constexpr_color{0.490f, 0.490f, 0.490f, 0.800f}, //scrollbar_grab_active
 			theme::constexpr_color{0.490f, 0.490f, 0.490f, 1.000f}, //scrollbar_grab_hovered
-			{}, //filter_hint
+			theme::constexpr_color{0.649f, 0.661f, 0.669f, 1.000f}, //filter_hint
 			theme::constexpr_color{1.000f, 1.000f, 1.000f, 1.000f}, //filter_text
+			theme::constexpr_color{0.490f, 0.240f, 1.000f, 1.000f}, //matching_text
 			{
 				theme::constexpr_color{0.549f, 0.561f, 0.569f, 1.f}, // log_level::trace
 				theme::constexpr_color{0.153f, 0.596f, 0.498f, 1.f}, // log_level::debug

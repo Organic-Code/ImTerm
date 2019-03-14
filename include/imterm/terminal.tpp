@@ -20,6 +20,8 @@
 #include <array>
 #include <cctype>
 #include <charconv>
+#include <map>
+#include <optional>
 
 #include "misc.hpp"
 
@@ -437,6 +439,8 @@ void terminal<TerminalHelper>::display_settings_bar(const std::vector<config_pan
 
 template <typename TerminalHelper>
 void terminal<TerminalHelper>::display_messages() noexcept {
+	bool regex_search = m_last_size > 0 ? false : true;
+
 	ImVec2 avail_space = ImGui::GetContentRegionAvail();
 	float commandline_height = ImGui::CalcTextSize("a").y + ImGui::GetStyle().FramePadding.y * 4.f;
 	if (avail_space.y > commandline_height) {
@@ -458,43 +462,98 @@ void terminal<TerminalHelper>::display_messages() noexcept {
 					continue;
 				}
 
+
+				std::map<std::string::const_iterator, std::pair<unsigned long, std::optional<theme::constexpr_color>>> colors;
 				if (m_log_text_filter_buffer_usage != 0) {
 					std::string_view filter{m_log_text_filter_buffer.data(), m_log_text_filter_buffer_usage};
-					auto it = std::search(msg.value.begin(), msg.value.end(), filter.begin(), filter.end());
+					auto it = std::search(msg.value.cbegin(), msg.value.cend(), filter.begin(), filter.end());
 					if (it == msg.value.end()) {
 						continue;
 					}
-				}
 
-				if (msg.color_beg < msg.color_end) {
-					text_formatted("%.*s", msg.color_beg, msg.value.data());
-					ImGui::SameLine(0.f, 0.f);
-
-					int pop = 0;
-					if (msg.is_term_message) {
-						if (msg.severity == message::severity::trace) {
-							pop += try_push_style(ImGuiCol_Text, m_colors.cmd_backlog);
-							// todo: print even when there is no color in the message
-							text_formatted("[%d] ", static_cast<int>(traced_count + m_last_flush_at_history - m_command_history.size()));
-							++traced_count;
-							ImGui::SameLine(0.f, 0.f);
-						} else if (msg.severity == message::severity::debug) {
-							pop += try_push_style(ImGuiCol_Text, m_colors.cmd_history_completed);
-						} else if (msg.severity == message::severity::err) {
-							pop += try_push_style(ImGuiCol_Text, m_colors.log_level_colors[msg.severity]);
+					auto distance = static_cast<unsigned long>(std::distance(msg.value.cbegin(), it));
+					if (distance > msg.color_beg) {
+						colors.emplace(msg.value.cbegin(), std::pair{msg.color_beg, std::optional<theme::constexpr_color>{}});
+						if (distance > msg.color_end) {
+							colors.emplace(msg.value.cbegin() + msg.color_beg, std::pair{msg.color_end - msg.color_beg, std::optional<theme::constexpr_color>{}});
+							colors.emplace(msg.value.cbegin() + msg.color_end, std::pair{distance - msg.color_end, std::optional<theme::constexpr_color>{}});
+						} else {
+							colors.emplace(msg.value.cbegin() + msg.color_beg, std::pair{distance - msg.color_beg, std::optional<theme::constexpr_color>{}});
 						}
 					} else {
-						pop += try_push_style(ImGuiCol_Text, m_colors.log_level_colors[msg.severity]);
+						colors.emplace(msg.value.cbegin(), std::pair{distance, std::optional<theme::constexpr_color>{}});
+						colors.emplace(msg.value.cbegin() + msg.color_beg, std::pair{0, std::optional<theme::constexpr_color>{}});
 					}
+					colors.emplace(msg.value.cbegin() + msg.color_end, std::pair{0, std::optional<theme::constexpr_color>{}});
 
-					text_formatted("%.*s", msg.color_end - msg.color_beg, msg.value.data() + msg.color_beg);
-					ImGui::PopStyleColor(pop);
+					std::string::const_iterator last_valid;
+					do {
+						colors[it] = std::pair{filter.size(), m_colors.matching_text};
+						last_valid = it + filter.size();
+						it = std::search(last_valid, msg.value.cend(), filter.begin(), filter.end());
 
-					ImGui::SameLine(0.f, 0.f);
-					text_formatted("%.*s", msg.value.size() - msg.color_end, msg.value.data() + msg.color_end);
+						distance = static_cast<unsigned long>(std::distance(last_valid, it));
+						if (last_valid < msg.value.cbegin() + msg.color_beg && last_valid + distance > msg.value.cbegin() + msg.color_beg) {
+
+							auto mid_point = static_cast<unsigned long>(msg.color_beg + msg.value.cbegin() - last_valid);
+							colors[last_valid] = std::pair{mid_point, std::optional<theme::constexpr_color>{}};
+
+							if (last_valid + distance < msg.value.cbegin() + msg.color_end) {
+								colors[last_valid + mid_point] = std::pair{distance - mid_point, std::optional<theme::constexpr_color>{}};
+							} else {
+								auto len = msg.color_end - msg.color_beg;
+								colors[last_valid + mid_point] = std::pair{len, std::optional<theme::constexpr_color>{}};
+								colors[last_valid + mid_point + len] = std::pair{distance - mid_point - len, std::optional<theme::constexpr_color>{}};
+							}
+
+						} else if (last_valid < msg.value.cbegin() + msg.color_end && last_valid + distance > msg.value.cbegin() + msg.color_end){
+							auto mid_point = static_cast<unsigned long>(msg.color_end + msg.value.cbegin() - last_valid);
+							colors[last_valid] = std::pair{mid_point, std::optional<theme::constexpr_color>{}};
+							colors[last_valid + mid_point] = std::pair{distance - mid_point, std::optional<theme::constexpr_color>{}};
+
+						} else {
+							colors[last_valid] = std::pair{distance, std::optional<theme::constexpr_color>{}};
+						}
+
+					} while (it != msg.value.cend());
+					colors.emplace(msg.value.cbegin() + msg.color_end, std::pair{0, std::optional<theme::constexpr_color>{}});
+
 				} else {
-					text_formatted("%.*s", msg.value.size(), msg.value.data());
+					colors.emplace(msg.value.cbegin(), std::pair{msg.color_beg, std::optional<theme::constexpr_color>{}});
+					colors[msg.value.cbegin() + msg.color_beg] = std::pair{msg.color_end - msg.color_beg, std::optional<theme::constexpr_color>{}};
+					colors[msg.value.cbegin() + msg.color_end] = std::pair{msg.value.size() - msg.color_end, std::optional<theme::constexpr_color>{}};
 				}
+
+
+				unsigned int msg_col_pop = 0u;
+				for (const auto& color : colors) {
+					if (color.first == msg.value.begin() + msg.color_beg) {
+						if (msg.is_term_message) {
+							if (msg.severity == message::severity::trace) {
+								msg_col_pop += try_push_style(ImGuiCol_Text, m_colors.cmd_backlog);
+								text_formatted("[%d] ", static_cast<int>(traced_count + m_last_flush_at_history - m_command_history.size()));
+								++traced_count;
+								ImGui::SameLine(0.f, 0.f);
+							} else if (msg.severity == message::severity::debug) {
+								msg_col_pop += try_push_style(ImGuiCol_Text, m_colors.cmd_history_completed);
+							} else {
+								msg_col_pop += try_push_style(ImGuiCol_Text, m_colors.log_level_colors[msg.severity]);
+							}
+						} else {
+							msg_col_pop += try_push_style(ImGuiCol_Text, m_colors.log_level_colors[msg.severity]);
+						}
+					}
+					if (color.first == msg.value.begin() + msg.color_end) {
+						ImGui::PopStyleColor(msg_col_pop);
+						msg_col_pop = 0u;
+					}
+					const int pop = try_push_style(ImGuiCol_Text, color.second.second);
+					text_formatted("%.*s", color.second.first, &*color.first);
+					ImGui::PopStyleColor(pop);
+					ImGui::SameLine(0.f, 0.f);
+				}
+				ImGui::PopStyleColor(msg_col_pop);
+				ImGui::NewLine();
 			}
 		}
 		if (m_autoscroll) {
