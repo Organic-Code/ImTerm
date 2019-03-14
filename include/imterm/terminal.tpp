@@ -22,6 +22,9 @@
 #include <charconv>
 #include <map>
 #include <optional>
+#ifdef IMTERM_ENABLE_REGEX
+#include <regex>
+#endif
 
 #include "misc.hpp"
 
@@ -71,6 +74,139 @@ namespace details {
 	template <typename TerminalHelper>
 	std::enable_if_t<!misc::is_detected_v<set_terminal_method, TerminalHelper>>
 	assign_terminal(TerminalHelper& helper, terminal <TerminalHelper>& terminal) {}
+
+	// simple as in "non regex"
+	inline std::map<std::string::const_iterator, std::pair<unsigned long, std::optional<theme::constexpr_color>>>
+	simple_colors_split(std::string_view filter, const message& msg, const std::optional<theme::constexpr_color>& matching_text_color) {
+
+		std::map<std::string::const_iterator, std::pair<unsigned long, std::optional<theme::constexpr_color>>> colors;
+		if (filter.empty()) {
+			colors.emplace(msg.value.cbegin() + msg.color_end, std::pair{msg.value.size() - msg.color_end, std::optional<theme::constexpr_color>{}});
+			colors.emplace(msg.value.cbegin() + msg.color_beg, std::pair{msg.color_end - msg.color_beg, std::optional<theme::constexpr_color>{}});
+			colors.emplace(msg.value.cbegin(), std::pair{msg.color_beg, std::optional<theme::constexpr_color>{}});
+			return colors;
+		}
+
+		auto it = std::search(msg.value.cbegin(), msg.value.cend(), filter.begin(), filter.end());
+		if (it == msg.value.end()) {
+			return colors;
+		}
+
+		auto distance = static_cast<unsigned long>(std::distance(msg.value.cbegin(), it));
+		if (distance > msg.color_beg) {
+			colors.emplace(msg.value.cbegin(), std::pair{msg.color_beg, std::optional<theme::constexpr_color>{}});
+			if (distance > msg.color_end) {
+				colors.emplace(msg.value.cbegin() + msg.color_beg, std::pair{msg.color_end - msg.color_beg, std::optional<theme::constexpr_color>{}});
+				colors.emplace(msg.value.cbegin() + msg.color_end, std::pair{distance - msg.color_end, std::optional<theme::constexpr_color>{}});
+			} else {
+				colors.emplace(msg.value.cbegin() + msg.color_beg, std::pair{distance - msg.color_beg, std::optional<theme::constexpr_color>{}});
+			}
+		} else {
+			colors.emplace(msg.value.cbegin(), std::pair{distance, std::optional<theme::constexpr_color>{}});
+			colors.emplace(msg.value.cbegin() + msg.color_beg, std::pair{0, std::optional<theme::constexpr_color>{}});
+		}
+		colors.emplace(msg.value.cbegin() + msg.color_end, std::pair{0, std::optional<theme::constexpr_color>{}});
+
+		std::string::const_iterator last_valid;
+		do {
+			colors[it] = std::pair{filter.size(), matching_text_color};
+			last_valid = it + filter.size();
+			it = std::search(last_valid, msg.value.cend(), filter.begin(), filter.end());
+
+			distance = static_cast<unsigned long>(std::distance(last_valid, it));
+			if (last_valid < msg.value.cbegin() + msg.color_beg && last_valid + distance > msg.value.cbegin() + msg.color_beg) {
+
+				auto mid_point = static_cast<unsigned long>(msg.color_beg + msg.value.cbegin() - last_valid);
+				colors[last_valid] = std::pair{mid_point, std::optional<theme::constexpr_color>{}};
+
+				if (last_valid + distance < msg.value.cbegin() + msg.color_end) {
+					colors[last_valid + mid_point] = std::pair{distance - mid_point, std::optional<theme::constexpr_color>{}};
+				} else {
+					auto len = msg.color_end - msg.color_beg;
+					colors[last_valid + mid_point] = std::pair{len, std::optional<theme::constexpr_color>{}};
+					colors[last_valid + mid_point + len] = std::pair{distance - mid_point - len, std::optional<theme::constexpr_color>{}};
+				}
+
+			} else if (last_valid < msg.value.cbegin() + msg.color_end && last_valid + distance > msg.value.cbegin() + msg.color_end){
+				auto mid_point = static_cast<unsigned long>(msg.color_end + msg.value.cbegin() - last_valid);
+				colors[last_valid] = std::pair{mid_point, std::optional<theme::constexpr_color>{}};
+				colors[last_valid + mid_point] = std::pair{distance - mid_point, std::optional<theme::constexpr_color>{}};
+
+			} else {
+				colors[last_valid] = std::pair{distance, std::optional<theme::constexpr_color>{}};
+			}
+
+		} while (it != msg.value.cend());
+		return colors;
+	}
+
+#ifdef IMTERM_ENABLE_REGEX
+	inline std::map<std::string::const_iterator, std::pair<unsigned long, std::optional<theme::constexpr_color>>>
+	regex_colors_split(std::string_view filter, const message& msg, const std::optional<theme::constexpr_color>& matching_text_color) {
+		auto make_pair = [](auto len, std::optional<theme::constexpr_color> color = {}) {
+			return std::pair{static_cast<unsigned long>(len), color};
+		};
+
+		std::map<std::string::const_iterator, std::pair<unsigned long, std::optional<theme::constexpr_color>>> colors;
+		if (filter.empty()) {
+			colors.emplace(msg.value.cbegin() + msg.color_end, make_pair(msg.value.size() - msg.color_end));
+			colors.emplace(msg.value.cbegin() + msg.color_beg, make_pair(msg.color_end - msg.color_beg));
+			colors.emplace(msg.value.cbegin(), make_pair(msg.color_beg));
+			return colors;
+		}
+
+		std::smatch matches;
+		std::regex_search(msg.value, matches, std::regex(filter.begin(), filter.end()));
+
+		if (matches.empty()) {
+			return colors;
+		}
+
+		const auto& match = matches[0];
+		auto match_len = std::distance(match.first, match.second);
+		colors.emplace(match.first, make_pair(match_len, matching_text_color));
+
+		auto match_begin = std::distance(msg.value.cbegin(), match.first);
+		auto match_end = match_begin + match_len;
+		if (match_begin > msg.color_beg) {
+			if (match_begin > msg.color_end) {
+				colors.emplace(match.second, make_pair(std::distance(match.second, msg.value.cend())));
+				colors.emplace(msg.value.cbegin() + msg.color_end, make_pair(match_begin - msg.color_end));
+				colors.emplace(msg.value.cbegin() + msg.color_beg, make_pair(msg.color_end - msg.color_beg));
+			} else {
+				if (match_end > msg.color_end ) {
+					colors.emplace(match.second, make_pair(std::distance(match.second, msg.value.cend())));
+					colors.emplace(msg.value.cbegin() + msg.color_end, make_pair(0u));
+					colors.emplace(msg.value.cbegin() + msg.color_beg, make_pair(match_begin - msg.color_beg));
+				} else {
+					colors.emplace(msg.value.cbegin() + msg.color_end, make_pair(std::distance(msg.value.begin() + msg.color_end, msg.value.end())));
+					colors.emplace(match.second, make_pair(std::distance(match.second, msg.value.cbegin() + msg.color_end)));
+					colors.emplace(msg.value.cbegin() + msg.color_beg, make_pair(match_begin - msg.color_beg));
+				}
+			}
+			colors.emplace(msg.value.cbegin(), make_pair(msg.color_beg));
+		} else {
+			if (match_end > msg.color_beg) {
+				if (match_end > msg.color_end) {
+					colors.emplace(msg.value.cbegin() + match_end, make_pair(msg.value.size() - match_end));
+					colors.emplace(msg.value.cbegin(), make_pair(match_begin));
+					colors.emplace(msg.value.cbegin() + msg.color_end, make_pair(0));
+				} else {
+					colors.emplace(msg.value.cbegin() + msg.color_end, make_pair(msg.value.size() - msg.color_end));
+					colors.emplace(msg.value.cbegin() + match_end, make_pair(msg.color_end - match_end));
+					colors.emplace(msg.value.cbegin() + msg.color_beg, make_pair(0));
+					colors.emplace(msg.value.cbegin(), make_pair(match_begin));
+				}
+			} else {
+				colors.emplace(msg.value.cbegin() + msg.color_end, make_pair(msg.value.size() - msg.color_end));
+				colors.emplace(msg.value.cbegin() + msg.color_beg, make_pair(msg.color_end - msg.color_beg));
+				colors.emplace(match.second, make_pair(msg.color_beg - match_end));
+				colors.emplace(msg.value.cbegin(), make_pair(match_begin));
+			}
+		}
+		return colors;
+	}
+#endif
 }
 
 template <typename TerminalHelper>
@@ -439,7 +575,6 @@ void terminal<TerminalHelper>::display_settings_bar(const std::vector<config_pan
 
 template <typename TerminalHelper>
 void terminal<TerminalHelper>::display_messages() noexcept {
-	bool regex_search = m_last_size > 0 ? false : true;
 
 	ImVec2 avail_space = ImGui::GetContentRegionAvail();
 	float commandline_height = ImGui::CalcTextSize("a").y + ImGui::GetStyle().FramePadding.y * 4.f;
@@ -462,68 +597,26 @@ void terminal<TerminalHelper>::display_messages() noexcept {
 					continue;
 				}
 
-
 				std::map<std::string::const_iterator, std::pair<unsigned long, std::optional<theme::constexpr_color>>> colors;
-				if (m_log_text_filter_buffer_usage != 0) {
-					std::string_view filter{m_log_text_filter_buffer.data(), m_log_text_filter_buffer_usage};
-					auto it = std::search(msg.value.cbegin(), msg.value.cend(), filter.begin(), filter.end());
-					if (it == msg.value.end()) {
-						continue;
+#ifdef IMTERM_ENABLE_REGEX
+				if (m_regex_search) {
+					try {
+						std::string_view filter{m_log_text_filter_buffer.data(), m_log_text_filter_buffer_usage};
+						colors = details::regex_colors_split(filter, msg, m_colors.matching_text);
+					} catch (const std::regex_error&) {
+						continue; // malformed regex is treated as no match
 					}
-
-					auto distance = static_cast<unsigned long>(std::distance(msg.value.cbegin(), it));
-					if (distance > msg.color_beg) {
-						colors.emplace(msg.value.cbegin(), std::pair{msg.color_beg, std::optional<theme::constexpr_color>{}});
-						if (distance > msg.color_end) {
-							colors.emplace(msg.value.cbegin() + msg.color_beg, std::pair{msg.color_end - msg.color_beg, std::optional<theme::constexpr_color>{}});
-							colors.emplace(msg.value.cbegin() + msg.color_end, std::pair{distance - msg.color_end, std::optional<theme::constexpr_color>{}});
-						} else {
-							colors.emplace(msg.value.cbegin() + msg.color_beg, std::pair{distance - msg.color_beg, std::optional<theme::constexpr_color>{}});
-						}
-					} else {
-						colors.emplace(msg.value.cbegin(), std::pair{distance, std::optional<theme::constexpr_color>{}});
-						colors.emplace(msg.value.cbegin() + msg.color_beg, std::pair{0, std::optional<theme::constexpr_color>{}});
-					}
-					colors.emplace(msg.value.cbegin() + msg.color_end, std::pair{0, std::optional<theme::constexpr_color>{}});
-
-					std::string::const_iterator last_valid;
-					do {
-						colors[it] = std::pair{filter.size(), m_colors.matching_text};
-						last_valid = it + filter.size();
-						it = std::search(last_valid, msg.value.cend(), filter.begin(), filter.end());
-
-						distance = static_cast<unsigned long>(std::distance(last_valid, it));
-						if (last_valid < msg.value.cbegin() + msg.color_beg && last_valid + distance > msg.value.cbegin() + msg.color_beg) {
-
-							auto mid_point = static_cast<unsigned long>(msg.color_beg + msg.value.cbegin() - last_valid);
-							colors[last_valid] = std::pair{mid_point, std::optional<theme::constexpr_color>{}};
-
-							if (last_valid + distance < msg.value.cbegin() + msg.color_end) {
-								colors[last_valid + mid_point] = std::pair{distance - mid_point, std::optional<theme::constexpr_color>{}};
-							} else {
-								auto len = msg.color_end - msg.color_beg;
-								colors[last_valid + mid_point] = std::pair{len, std::optional<theme::constexpr_color>{}};
-								colors[last_valid + mid_point + len] = std::pair{distance - mid_point - len, std::optional<theme::constexpr_color>{}};
-							}
-
-						} else if (last_valid < msg.value.cbegin() + msg.color_end && last_valid + distance > msg.value.cbegin() + msg.color_end){
-							auto mid_point = static_cast<unsigned long>(msg.color_end + msg.value.cbegin() - last_valid);
-							colors[last_valid] = std::pair{mid_point, std::optional<theme::constexpr_color>{}};
-							colors[last_valid + mid_point] = std::pair{distance - mid_point, std::optional<theme::constexpr_color>{}};
-
-						} else {
-							colors[last_valid] = std::pair{distance, std::optional<theme::constexpr_color>{}};
-						}
-
-					} while (it != msg.value.cend());
-					colors.emplace(msg.value.cbegin() + msg.color_end, std::pair{0, std::optional<theme::constexpr_color>{}});
-
 				} else {
-					colors.emplace(msg.value.cbegin(), std::pair{msg.color_beg, std::optional<theme::constexpr_color>{}});
-					colors[msg.value.cbegin() + msg.color_beg] = std::pair{msg.color_end - msg.color_beg, std::optional<theme::constexpr_color>{}};
-					colors[msg.value.cbegin() + msg.color_end] = std::pair{msg.value.size() - msg.color_end, std::optional<theme::constexpr_color>{}};
+					std::string_view filter{m_log_text_filter_buffer.data(), m_log_text_filter_buffer_usage};
+						colors = details::simple_colors_split(filter, msg, m_colors.matching_text);
 				}
-
+#else
+				std::string_view filter{m_log_text_filter_buffer.data(), m_log_text_filter_buffer_usage};
+				colors = details::simple_colors_split(filter, msg, m_colors.matching_text);
+#endif
+				if (colors.empty()) {
+					continue;
+				}
 
 				unsigned int msg_col_pop = 0u;
 				for (const auto& color : colors) {

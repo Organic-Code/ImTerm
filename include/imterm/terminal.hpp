@@ -449,10 +449,13 @@ namespace ImTerm {
 		struct theme m_colors{};
 
 		// configuration
-		bool m_autoscroll{true};
-		bool m_autowrap{true};
+		bool m_autoscroll{true}; // TODO: accessors
+		bool m_autowrap{true};  // TODO: accessors
 		std::vector<std::string>::size_type m_last_size{0u};
-		int m_level{message::severity::trace};
+		int m_level{message::severity::trace}; // TODO: accessors
+#ifdef IMTERM_ENABLE_REGEX
+		bool m_regex_search{true}; // TODO: accessors, button
+#endif
 
 		std::optional<std::string> m_autoscroll_text;
 		std::optional<std::string> m_clear_text;
