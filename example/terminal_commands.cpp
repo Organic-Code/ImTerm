@@ -61,6 +61,7 @@ namespace {
 				csv_cmd_history_completed,
 				csv_check_mark,
 				csv_filter,
+				csv_filter_match,
 				csv_frame_bg,
 				csv_frame_bg_active,
 				csv_frame_bg_hovered,
@@ -111,48 +112,49 @@ namespace {
 				"reset-theme",
 				"set-theme",
 				"set-value",
-				"auto_complete_non_selected",
-				"auto_complete_selected",
-				"auto_complete_separator",
+				"auto complete non selected",
+				"auto complete selected",
+				"auto complete separator",
 				"border",
-				"border_shadow",
+				"border shadow",
 				"button",
-				"button_active",
-				"button_hovered",
-				"cmd_backlog",
-				"cmd_history_completed",
-				"check_mark",
-				"filter_hint",
-				"frame_bg",
-				"frame_bg_active",
-				"frame_bg_hovered",
-				"log_level_drop_down_bg",
-				"log_level_active",
-				"log_level_hovered",
-				"log_level_selected",
-				"log_trace",
-				"log_debug",
-				"log_info",
-				"log_warning",
-				"log_error",
-				"log_critical",
-				"message_panel",
-				"scrollbar_bg",
-				"scrollbar_grab",
-				"scrollbar_grab_active",
-				"scrollbar_grab_hovered",
+				"button active",
+				"button hovered",
+				"cmd backlog",
+				"cmd history completed",
+				"check mark",
+				"filter hint",
+				"filter match",
+				"frame bg",
+				"frame bg active",
+				"frame bg hovered",
+				"log level drop down bg",
+				"log level active",
+				"log level hovered",
+				"log level selected",
+				"log trace",
+				"log debug",
+				"log info",
+				"log warning",
+				"log error",
+				"log critical",
+				"message panel",
+				"scrollbar bg",
+				"scrollbar grab",
+				"scrollbar grab active",
+				"scrollbar grab hovered",
 				"text",
-				"text_selected_bg",
-				"title_bg",
-				"title_bg_active",
-				"title_bg_collapsed",
-				"window_bg",
-				"set_text",
+				"text selected bg",
+				"title bg",
+				"title bg active",
+				"title bg collapsed",
+				"window bg",
+				"set-text",
 				"autoscroll",
 				"autowrap",
 				"clear",
-				"log_level",
-				"filter_hint",
+				"log level",
+				"filter hint",
 				"logs",
 		};
 	}
@@ -186,7 +188,7 @@ void terminal_commands::configure_term(argument_type& arg) {
 			arg.term.add_formatted_err("Unknown completion parameter: {}", cl[2]);
 		}
 	} else if (cl[1] == strings[cmds::colors]) {
-		if (cl[2] == strings[cmds::col_list_themes] && cl.size() == 3) {
+		if (cl.size() == 3 && cl[2] == strings[cmds::col_list_themes]) {
 			unsigned long max_size = 0;
 			for (const ImTerm::theme& theme : ImTerm::themes::list) {
 				max_size = std::max(max_size, static_cast<unsigned long>(theme.name.size()));
@@ -200,10 +202,10 @@ void terminal_commands::configure_term(argument_type& arg) {
 			}
 
 
-		} else if(cl[2] == strings[cmds::col_reset_theme] && cl.size() == 3) {
+		} else if(cl.size() == 3 && cl[2] == strings[cmds::col_reset_theme]) {
 			arg.term.reset_colors();
 
-		} else if (cl[2] == strings[cmds::col_set_theme] && cl.size() == 4) {
+		} else if (cl.size() == 4 && cl[2] == strings[cmds::col_set_theme]) {
 
 			for (const ImTerm::theme& theme : ImTerm::themes::list) {
 				if (theme.name == cl[3]) {
@@ -213,8 +215,8 @@ void terminal_commands::configure_term(argument_type& arg) {
 			}
 			arg.term.add_formatted_err("Unknown theme: {}", cl[3]);
 
-		} else if ((cl[2] == strings[cmds::col_set_value] && (cl.size() == 8 || cl.size() == 7 || cl.size() == 4))
-					|| (cl[2] == strings[cmds::col_get_value] && (cl.size() == 4))) {
+		} else if (((cl.size() == 8 || cl.size() == 7 || cl.size() == 4) && cl[2] == strings[cmds::col_set_value])
+					|| ((cl.size() == 4) && cl[2] == strings[cmds::col_get_value])) {
 			auto it = misc::find_first_prefixed(cl[3], strings.begin() + cmds::csv_begin, strings.begin() + cmds::csv_end, [](auto&&){return false;});
 
 			if (it == strings.begin() + cmds::csv_end) {
@@ -233,6 +235,7 @@ void terminal_commands::configure_term(argument_type& arg) {
 				case cmds::csv_button_hovered:             theme_color = &arg.term.theme().button_hovered;              break;
 				case cmds::csv_button_active:              theme_color = &arg.term.theme().button_active;               break;
 				case cmds::csv_filter:                     theme_color = &arg.term.theme().filter_hint;                 break;
+				case cmds::csv_filter_match:               theme_color = &arg.term.theme().matching_text;               break;
 				case cmds::csv_frame_bg:                   theme_color = &arg.term.theme().frame_bg;                    break;
 				case cmds::csv_frame_bg_hovered:           theme_color = &arg.term.theme().frame_bg_hovered;            break;
 				case cmds::csv_frame_bg_active:            theme_color = &arg.term.theme().frame_bg_active;             break;
@@ -294,7 +297,7 @@ void terminal_commands::configure_term(argument_type& arg) {
 			}
 		}
 
-	} else if (cl[1] == strings[cmds::set_text] && (cl.size() == 3 || cl.size() == 4 || cl.size() == 10)) {
+	} else if ((cl.size() == 3 || cl.size() == 4 || cl.size() == 10) && cl[1] == strings[cmds::set_text]) {
 		auto it = misc::find_first_prefixed(cl[2], strings.begin() + cmds::st_begin, strings.begin() + cmds::st_optional_end, [](auto&&){return false;});
 		if (it == strings.begin() + cmds::st_optional_end) {
 			it = misc::find_first_prefixed(cl[2], strings.begin() + cmds::st_optional_end, strings.begin() + cmds::st_end, [](auto&&){return false;});

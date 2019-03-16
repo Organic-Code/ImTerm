@@ -43,7 +43,6 @@ public:
 	static void echo(argument_type&);
 	static void exit(argument_type&);
 	static void help(argument_type&);
-	static void print_resource(argument_type&);
 	static void quit(argument_type&);
 };
 
