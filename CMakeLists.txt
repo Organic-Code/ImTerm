@@ -8,4 +8,4 @@ target_include_directories(ImTerm INTERFACE
     $<INSTALL_INTERFACE:include/>
 )
 
-add_subdirectory(example EXCLUDE_FROM_ALL)
+#add_subdirectory(example EXCLUDE_FROM_ALL)
