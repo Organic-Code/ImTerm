@@ -334,6 +334,17 @@ namespace ImTerm {
 		// clears the message panel
 		void clear();
 
+		message::severity::severity_t log_level() noexcept {
+			return m_level + m_lowest_log_level_val;
+		}
+
+		void log_level(message::severity::severity_t new_level) noexcept {
+			if (m_lowest_log_level_val > new_level) {
+				set_min_log_level(new_level);
+			}
+			m_level = new_level - m_lowest_log_level_val;
+		}
+
 		// returns the text used to label the button that clears the message panel
 		// set it to an empty optional if you don't want the button to be displayed
 		std::optional<std::string>& clear_text() noexcept {

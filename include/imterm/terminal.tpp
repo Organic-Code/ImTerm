@@ -396,6 +396,8 @@ void terminal<TerminalHelper>::set_level_list_text(std::string_view trace_str, s
 
 template <typename TerminalHelper>
 void terminal<TerminalHelper>::set_min_log_level(message::severity::severity_t level) {
+	m_level = m_level + m_lowest_log_level_val - level;
+
 	m_lowest_log_level_val = level;
 	m_lowest_log_level = m_level_list_text.data();
 	for (int i = level ; i > 0 ; --i) {
