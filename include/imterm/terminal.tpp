@@ -241,7 +241,29 @@ bool terminal<TerminalHelper>::show(const std::vector<config_panels>& panels_ord
 	m_should_show_next_frame = !m_close_request;
 	m_close_request = false;
 
-	ImGui::SetNextWindowSize(ImVec2(static_cast<float>(m_base_width), static_cast<float>(m_base_height)), ImGuiCond_Once);
+	if (m_update_height) {
+		if (m_update_width) {
+			ImGui::SetNextWindowSizeConstraints({static_cast<float>(m_base_width), static_cast<float>(m_base_height)},
+			                                    {static_cast<float>(m_base_width), static_cast<float>(m_base_height)});
+			m_update_width = false;
+		} else {
+			ImGui::SetNextWindowSizeConstraints({-1.f, static_cast<float>(m_base_height)}, {-1.f, static_cast<float>(m_base_height)});
+		}
+		m_update_height = false;
+	} else if (m_update_width) {
+		ImGui::SetNextWindowSizeConstraints({static_cast<float>(m_base_width), -1.f}, {static_cast<float>(m_base_width), -1.f});
+		m_update_width = false;
+	} else {
+		if (!m_allow_x_resize) {
+			if (!m_allow_y_resize) {
+				ImGui::SetNextWindowSizeConstraints(m_current_size, m_current_size);
+			} else {
+				ImGui::SetNextWindowSizeConstraints({m_current_size.x, 0.f}, {m_current_size.x, std::numeric_limits<float>::infinity()});
+			}
+		} else if (!m_allow_y_resize) {
+			ImGui::SetNextWindowSizeConstraints({0.f, m_current_size.y}, {std::numeric_limits<float>::infinity(), m_current_size.y});
+		}
+	}
 
 	int pop_count = 0;
 	pop_count += try_push_style(ImGuiCol_Text, m_colors.text);
@@ -275,11 +297,12 @@ bool terminal<TerminalHelper>::show(const std::vector<config_panels>& panels_ord
 		m_has_focus = false;
 	}
 
-	if (!ImGui::Begin(m_window_name, nullptr, ImGuiWindowFlags_NoScrollbar)) {
+	if (!ImGui::Begin(m_window_name, nullptr, ImGuiWindowFlags_NoScrollbar | m_flags)) {
 		ImGui::End();
 		ImGui::PopStyleColor(pop_count);
 		return true;
 	}
+	m_current_size = ImGui::GetWindowSize();
 
 	display_settings_bar(panels_order);
 	display_messages();

@@ -386,6 +386,61 @@ namespace ImTerm {
 		// but will never be able to view 'trace' and 'debug' messages
 		void set_min_log_level(message::severity::severity_t level);
 
+		// Adds custom flags to the terminal window
+		void set_flags(ImGuiWindowFlags flags) noexcept {
+			m_flags = flags;
+		}
+
+		// Sets the size of the terminal
+		void set_size(unsigned int x, unsigned int y) noexcept {
+			set_width(x);
+			set_height(y);
+		}
+
+		void set_size(ImVec2 sz) noexcept {
+			assert(sz.x >= 0);
+			assert(sz.y >= 0);
+			set_size(static_cast<unsigned>(sz.x), static_cast<unsigned>(sz.y));
+		}
+
+		void set_width(unsigned int x) noexcept {
+			m_base_width = x;
+			m_update_width = true;
+		}
+
+		void set_height(unsigned int y) noexcept {
+			m_base_height = y;
+			m_update_height = true;
+		}
+
+		// Get last window size
+		ImVec2 get_size() const noexcept {
+			return m_current_size;
+		}
+
+		// Allows / disallow resize on a given axis
+		void allow_x_resize() noexcept {
+			m_allow_x_resize = true;
+		}
+
+		void allow_y_resize() noexcept {
+			m_allow_y_resize = true;
+		}
+		void disallow_x_resize() noexcept {
+			m_allow_x_resize = false;
+		}
+
+		void disallow_y_resize() noexcept {
+			m_allow_y_resize = false;
+		}
+		void set_x_resize_allowance(bool allowed) noexcept {
+			m_allow_x_resize = allowed;
+		}
+
+		void set_y_resize_allowance(bool allowed) noexcept {
+			m_allow_y_resize = allowed;
+		}
+
 	private:
 		explicit terminal(value_type& arg_value, const char * window_name_, int base_width_, int base_height_, std::shared_ptr<TerminalHelper> th, terminal_helper_is_valid&&);
 
@@ -454,9 +509,17 @@ namespace ImTerm {
 		bool m_close_request{false};
 
 		const char * const m_window_name;
+		ImGuiWindowFlags m_flags{ImGuiWindowFlags_None};
 
-		const int m_base_width;
-		const int m_base_height;
+		int m_base_width;
+		int m_base_height;
+		bool m_update_width{true};
+		bool m_update_height{true};
+
+		bool m_allow_x_resize{true};
+		bool m_allow_y_resize{true};
+
+		ImVec2 m_current_size{0.f, 0.f};
 
 		struct theme m_colors{};
 
