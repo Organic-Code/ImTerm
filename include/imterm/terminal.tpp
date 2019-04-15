@@ -361,7 +361,7 @@ void terminal<TerminalHelper>::add_text(std::string str, unsigned int color_beg,
 	msg.color_beg = color_beg;
 	msg.color_end = color_end;
 	msg.value = std::move(str);
-	m_logs.emplace_back(std::move(msg));
+	push_message(std::move(msg));
 }
 
 template<typename TerminalHelper>
@@ -372,7 +372,7 @@ void terminal<TerminalHelper>::add_text_err(std::string str, unsigned int color_
 	msg.color_beg = color_beg;
 	msg.color_end = color_end;
 	msg.value = std::move(str);
-	m_logs.emplace_back(std::move(msg));
+	push_message(std::move(msg));
 }
 
 template<typename TerminalHelper>
@@ -380,7 +380,7 @@ void terminal<TerminalHelper>::add_message(message&& msg) {
 	if (msg.is_term_message && msg.severity != message::severity::warn) {
 		msg.severity = message::severity::info;
 	}
-	m_logs.emplace_back(std::move(msg));
+	push_message(std::move(msg));
 }
 
 template <typename TerminalHelper>
@@ -443,6 +443,21 @@ void terminal<TerminalHelper>::set_min_log_level(message::severity::severity_t l
 }
 
 template <typename TerminalHelper>
+void terminal<TerminalHelper>::set_max_log_len(std::vector<message>::size_type max_size) {
+	std::vector<message> new_msg_vect;
+	new_msg_vect.reserve(max_size);
+	for (auto i = 0u ; i < std::min(max_size, m_logs.size() - m_current_log_oldest_idx) ; ++i) {
+		new_msg_vect.emplace_back(std::move(m_logs[i + m_current_log_oldest_idx]));
+	}
+	for (auto i = 0u ; i < std::min(max_size - new_msg_vect.size(), m_logs.size() - new_msg_vect.size()) ; ++i) {
+		new_msg_vect.emplace_back(std::move(m_logs[i]));
+	}
+	m_logs = std::move(new_msg_vect);
+	m_current_log_oldest_idx = 0u;
+	m_max_log_len = max_size;
+}
+
+template <typename TerminalHelper>
 void terminal<TerminalHelper>::try_log(std::string_view str, message::type type) {
 	message::severity::severity_t severity;
 	switch (type) {
@@ -460,7 +475,7 @@ void terminal<TerminalHelper>::try_log(std::string_view str, message::type type)
 	if (msg) {
 		msg->is_term_message = true;
 		msg->severity = severity;
-		m_logs.emplace_back(std::move(*msg));
+		push_message(std::move(*msg));
 	}
 }
 
@@ -617,9 +632,9 @@ void terminal<TerminalHelper>::display_messages() noexcept {
 				text_formatted = ImGui::Text;
 			}
 
-			for (const message& msg : m_logs) {
+			auto print_single_message = [this, &traced_count, &text_formatted](const message& msg){
 				if (msg.severity < (m_level + m_lowest_log_level_val) && !msg.is_term_message) {
-					continue;
+					return;
 				}
 
 				std::map<std::string::const_iterator, std::pair<unsigned long, std::optional<theme::constexpr_color>>> colors;
@@ -629,7 +644,7 @@ void terminal<TerminalHelper>::display_messages() noexcept {
 						std::string_view filter{m_log_text_filter_buffer.data(), m_log_text_filter_buffer_usage};
 						colors = details::regex_colors_split(filter, msg, m_colors.matching_text);
 					} catch (const std::regex_error&) {
-						continue; // malformed regex is treated as no match
+						return; // malformed regex is treated as no match
 					}
 				} else {
 					std::string_view filter{m_log_text_filter_buffer.data(), m_log_text_filter_buffer_usage};
@@ -640,7 +655,7 @@ void terminal<TerminalHelper>::display_messages() noexcept {
 				colors = details::simple_colors_split(filter, msg, m_colors.matching_text);
 #endif
 				if (colors.empty()) {
-					continue;
+					return;
 				}
 
 				unsigned int msg_col_pop = 0u;
@@ -672,6 +687,13 @@ void terminal<TerminalHelper>::display_messages() noexcept {
 				}
 				ImGui::PopStyleColor(msg_col_pop);
 				ImGui::NewLine();
+			};
+
+			for (auto i = m_current_log_oldest_idx ; i < m_logs.size() ; ++i) {
+				print_single_message(m_logs[i]);
+			}
+			for (auto i = 0u ; i < m_current_log_oldest_idx ; ++i) {
+				print_single_message(m_logs[i]);
 			}
 		}
 		if (m_autoscroll) {
@@ -1544,6 +1566,16 @@ std::optional<std::vector<std::string>> terminal<TerminalHelper>::split_by_space
 	}
 
 	return out;
+}
+
+template <typename TerminalHelper>
+void terminal<TerminalHelper>::push_message(message&& msg) {
+	if (m_logs.size() == m_max_log_len) {
+		m_logs[m_current_log_oldest_idx] = std::move(msg);
+		m_current_log_oldest_idx = (m_current_log_oldest_idx + 1) % m_logs.size();
+	} else {
+		m_logs.emplace_back(std::move(msg));
+	}
 }
 
 } // namespace term

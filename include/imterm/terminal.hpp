@@ -391,6 +391,9 @@ namespace ImTerm {
 			m_flags = flags;
 		}
 
+		// Sets the maximum number of saved messages
+		void set_max_log_len(std::vector<message>::size_type max_size);
+
 		// Sets the size of the terminal
 		void set_size(unsigned int x, unsigned int y) noexcept {
 			set_width(x);
@@ -462,6 +465,8 @@ namespace ImTerm {
 		void show_autocomplete() noexcept;
 
 		void call_command() noexcept;
+
+		void push_message(message&&);
 
 		std::optional<std::string> resolve_history_reference(std::string_view str, bool& modified) const noexcept;
 
@@ -550,6 +555,8 @@ namespace ImTerm {
 		unsigned long m_last_flush_at_history{0u}; // for the [-n] indicator on command line
 		bool m_flush_bit{false};
 		std::vector<message> m_logs{};
+		std::vector<message>::size_type m_max_log_len{5'000}; // TODO: command
+		std::vector<message>::size_type m_current_log_oldest_idx{0};
 
 
 		// command line variables
