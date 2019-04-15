@@ -1,5 +1,5 @@
-#ifndef DUNGEEP_MISC_HPP
-#define DUNGEEP_MISC_HPP
+#ifndef IMTERM_MISC_HPP
+#define IMTERM_MISC_HPP
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///                                                                                                                                     ///
@@ -250,4 +250,4 @@ namespace misc {
 	};
 }
 
-#endif //DUNGEEP_MISC_HPP
+#endif //IMTERM_MISC_HPP

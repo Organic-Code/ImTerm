@@ -1,3 +1,6 @@
+#ifndef IMTERM_TERMINAL_HPP
+#define IMTERM_TERMINAL_HPP
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///                                                                                                                                     ///
 ///  Copyright C 2019, Lucas Lazare                                                                                                     ///
@@ -15,8 +18,6 @@
 ///                                                                                                                                     ///
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef DUNGEEP_TERMINAL_HPP
-#define DUNGEEP_TERMINAL_HPP
 
 #include <vector>
 #include <string>
@@ -607,4 +608,4 @@ namespace ImTerm {
 
 #undef IMTERM_FMT_INCLUDED
 
-#endif //DUNGEEP_TERMINAL_HPP
+#endif //IMTERM_TERMINAL_HPP
