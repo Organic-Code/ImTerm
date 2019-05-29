@@ -1,5 +1,5 @@
-#ifndef DUNGEEP_BASIC_TERMINAL_HELPER_HPP
-#define DUNGEEP_BASIC_TERMINAL_HELPER_HPP
+#ifndef TERMINAL_HELPER_HPP
+#define TERMINAL_HELPER_HPP
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///                                                                                                                                     ///
@@ -20,8 +20,8 @@
 
 #include <set>
 #include <array>
-#include "terminal.hpp"
 
+#include "terminal.hpp"
 #if __has_include("spdlog/spdlog.h")
 #include "spdlog/common.h"
 #include "spdlog/formatter.h"
@@ -42,7 +42,7 @@ namespace ImTerm::details {
 namespace ImTerm {
 
 
-	// basic_terminal_helper is meant to be an example
+	// terminal_helper_example is meant to be an example
 	// if you want to inherit from one, pick term::basic_terminal_helper (see below)
 	template <typename T>
 	class terminal_helper_example {
@@ -105,7 +105,7 @@ namespace ImTerm {
 
 
 		// command samples (implemented as static methods, but they can be outside of a class, if you will to)
-		static std::vector<std::string> no_completion(std::string_view) { return {}; }
+		static std::vector<std::string> no_completion(argument_type&) { return {}; }
 
 		static void clear(argument_type& arg) {
 			arg.term.clear();
@@ -265,7 +265,7 @@ namespace ImTerm {
 			if (msg.level == spdlog::level::off) {
 				return;
 			}
-			assert(terminal_);
+			assert(terminal_ != nullptr);
 			fmt::memory_buffer buff;
 			SinkBase::formatter_->format(msg, buff);
 			terminal_->add_message({details::to_imterm_severity(msg.level), fmt::to_string(buff)
@@ -343,4 +343,4 @@ namespace ImTerm {
 
 #undef IMTERM_SPDLOG_INCLUDED
 
-#endif //DUNGEEP_BASIC_TERMINAL_HELPER_HPP
+#endif //TERMINAL_HELPER_HPP

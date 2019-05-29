@@ -20,6 +20,7 @@
 
 #include <array>
 #include <optional>
+#include <charconv>
 
 namespace {
 
@@ -179,11 +180,11 @@ void terminal_commands::configure_term(argument_type& arg) {
 	}
 	if (cl[1] == strings[cmds::completion] && cl.size() == 3) {
 		if (cl[2] == strings[cmds::cpl_up]) {
-			arg.term.set_autocomplete_pos(term_t::position::up);
+			arg.term.set_autocomplete_pos(ImTerm::position::up);
 		} else if (cl[2] == strings[cmds::cpl_down]) {
-			arg.term.set_autocomplete_pos(term_t::position::down);
+			arg.term.set_autocomplete_pos(ImTerm::position::down);
 		} else if (cl[2] == strings[cmds::cpl_disable]) {
-			arg.term.set_autocomplete_pos(term_t::position::nowhere);
+			arg.term.set_autocomplete_pos(ImTerm::position::nowhere);
 		} else {
 			arg.term.add_formatted_err("Unknown completion parameter: {}", cl[2]);
 		}
@@ -374,13 +375,13 @@ std::vector<std::string> terminal_commands::configure_term_autocomplete(argument
 	} else if (args.size() == 3) {
 		current_subpart = 2;
 		if (args[1] == strings[cmds::completion]) {
-			if (all_args.term.get_autocomplete_pos() != term_t::position::nowhere) {
+			if (all_args.term.get_autocomplete_pos() != ImTerm::position::nowhere) {
 				try_match(cmds::cpl_disable);
 			}
-			if (all_args.term.get_autocomplete_pos() != term_t::position::down) {
+			if (all_args.term.get_autocomplete_pos() != ImTerm::position::down) {
 				try_match(cmds::cpl_down);
 			}
-			if (all_args.term.get_autocomplete_pos() != term_t::position::up) {
+			if (all_args.term.get_autocomplete_pos() != ImTerm::position::up) {
 				try_match(cmds::cpl_up);
 			}
 

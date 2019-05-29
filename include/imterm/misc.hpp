@@ -178,7 +178,7 @@ namespace misc {
 	// transform is whatever transformation you want to do to the matching elements.
 	template <typename ForwardIt, typename StrExtractor = identity, typename Transform = identity>
 	auto prefix_search(std::string_view prefix, ForwardIt c_beg, ForwardIt c_end,
-			StrExtractor&& str_ext = {}, Transform&& transform = {}) -> std::vector<decltype(transform(*c_beg))> {
+			StrExtractor&& str_ext = {}, Transform&& transform = {}) -> std::vector<std::decay_t<decltype(transform(*c_beg))>> {
 
 		auto lower = std::lower_bound(c_beg, c_end, prefix);
 		auto higher = std::upper_bound(lower, c_end, prefix, [&str_ext](std::string_view pre, const auto& element) {
@@ -186,7 +186,7 @@ namespace misc {
 			return pre.substr(0, std::min(val.size(), pre.size())) < val.substr(0, std::min(val.size(), pre.size()));
 		});
 
-		std::vector<decltype(transform(*c_beg))> ans;
+		std::vector<std::decay_t<decltype(transform(*c_beg))>> ans;
 		std::transform(lower, higher, std::back_inserter(ans), std::forward<Transform>(transform));
 		return ans;
 	}

@@ -1,3 +1,6 @@
+#ifndef TERMINAL_COMMANDS_HPP
+#define TERMINAL_COMMANDS_HPP
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///                                                                                                                                     ///
 ///  Copyright C 2019, Lucas Lazare                                                                                                     ///
@@ -14,9 +17,6 @@
 ///  arising from, out of or in connection with the software or the use or other dealings in the Software.                              ///
 ///                                                                                                                                     ///
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#ifndef DUNGEEP_TERMINAL_COMMANDS_HPP
-#define DUNGEEP_TERMINAL_COMMANDS_HPP
 
 #include <array>
 #include <string>
