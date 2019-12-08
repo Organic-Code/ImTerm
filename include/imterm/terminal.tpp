@@ -637,6 +637,11 @@ void terminal<TerminalHelper>::display_messages() noexcept {
 					return;
 				}
 
+				if (msg.value.empty()) {
+					ImGui::NewLine();
+					return;
+				}
+
 				std::map<std::string::const_iterator, std::pair<unsigned long, std::optional<theme::constexpr_color>>> colors;
 #ifdef IMTERM_ENABLE_REGEX
 				if (m_regex_search) {
