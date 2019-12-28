@@ -29,9 +29,8 @@
 #include "utils.hpp"
 #include "misc.hpp"
 
-#if __has_include("fmt/format.h")
+#ifdef IMTERM_USE_FMT
 #include "fmt/format.h"
-#define IMTERM_FMT_INCLUDED
 #endif
 
 namespace ImTerm {
@@ -143,7 +142,7 @@ namespace ImTerm {
 			return m_autocomplete_pos;
 		}
 
-#ifdef IMTERM_FMT_INCLUDED
+#ifdef IMTERM_USE_FMT
 		// logs a colorless text to the message panel
 		// added as terminal message with info severity
 		template <typename... Args>
