@@ -166,7 +166,7 @@ namespace details {
 		auto match_len = std::distance(match.first, match.second);
 		colors.emplace(match.first, make_pair(match_len, matching_text_color));
 
-		auto match_begin = std::distance(msg.value.cbegin(), match.first);
+		auto match_begin = static_cast<size_t>(std::distance(msg.value.cbegin(), match.first));
 		auto match_end = match_begin + match_len;
 		if (match_begin > msg.color_beg) {
 			if (match_begin > msg.color_end) {

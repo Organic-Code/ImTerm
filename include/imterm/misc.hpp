@@ -119,8 +119,8 @@ namespace misc {
 	template <typename ForwardIt, typename RandomAccessIt>
 	constexpr RandomAccessIt erase_insert(ForwardIt src_beg, ForwardIt src_end, RandomAccessIt dest_beg, RandomAccessIt dest_end, RandomAccessIt dest_max, unsigned int n) {
 		n = std::min(static_cast<unsigned>(std::distance(dest_beg, dest_end)), n);
-		auto copy_length = std::distance(src_beg, src_end);
-		auto avail_length = std::distance(dest_end, dest_max) + n;
+		auto copy_length = static_cast<unsigned>(std::distance(src_beg, src_end));
+		auto avail_length = static_cast<unsigned>(std::distance(dest_end, dest_max)) + n;
 
 		if (copy_length <= avail_length) {
 			misc::copy_backward(dest_beg + n, dest_end, dest_beg + copy_length, dest_end + copy_length);
