@@ -225,8 +225,8 @@ namespace ImTerm {
 		virtual ~basic_spdlog_terminal_helper() noexcept = default;
 
 		std::optional<ImTerm::message> format(std::string str, [[maybe_unused]] ImTerm::message::type type) {
-			spdlog::details::log_msg msg({}, &logger_name_, {}, str);
-			fmt::memory_buffer buff{};
+			spdlog::details::log_msg msg(spdlog::source_loc{}, logger_name_, {}, str);
+			spdlog::memory_buf_t buff{};
 			terminal_formatter_[static_cast<int>(type)]->format(msg, buff);
 
 			ImTerm::message term_msg = details::to_imterm_msg(msg);
@@ -266,7 +266,7 @@ namespace ImTerm {
 				return;
 			}
 			assert(terminal_ != nullptr);
-			fmt::memory_buffer buff;
+            spdlog::memory_buf_t buff{};
 			SinkBase::formatter_->format(msg, buff);
 			terminal_->add_message({details::to_imterm_severity(msg.level), fmt::to_string(buff)
 								 , msg.color_range_start, msg.color_range_end, false});
