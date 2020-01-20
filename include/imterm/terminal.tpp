@@ -529,7 +529,7 @@ void terminal<TerminalHelper>::display_settings_bar(const std::vector<config_pan
 		}
 	}
 
-	float consumer_width = std::max((ImGui::GetContentRegionAvailWidth() - required_space) / static_cast<float>(space_consumer_count), 0.1f);
+	float consumer_width = std::max((ImGui::GetContentRegionAvail().x - required_space) / static_cast<float>(space_consumer_count), 0.1f);
 
 	bool same_line_req{false};
 	auto same_line = [&same_line_req]() {
