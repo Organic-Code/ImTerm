@@ -225,7 +225,7 @@ namespace ImTerm {
 		virtual ~basic_spdlog_terminal_helper() noexcept = default;
 
 		std::optional<ImTerm::message> format(std::string str, [[maybe_unused]] ImTerm::message::type type) {
-			spdlog::details::log_msg msg(spdlog::source_loc{}, logger_name_, {}, str);
+			spdlog::details::log_msg msg(logger_name_, {}, str);
 			spdlog::memory_buf_t buff{};
 			terminal_formatter_[static_cast<int>(type)]->format(msg, buff);
 
