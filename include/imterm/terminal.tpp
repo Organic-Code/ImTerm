@@ -22,6 +22,8 @@
 #include <charconv>
 #include <map>
 #include <optional>
+#include <iterator>
+#include <algorithm>
 #ifdef IMTERM_ENABLE_REGEX
 #include <regex>
 #endif
@@ -395,23 +397,22 @@ void terminal<TerminalHelper>::set_level_list_text(std::string_view trace_str, s
 		, std::string_view none_str) {
 
 	m_level_list_text.clear();
-	m_level_list_text.shrink_to_fit();
-	m_level_list_text.resize(
+	m_level_list_text.reserve(
 			trace_str.size() + 1
 		+ debug_str.size() + 1
 		+ info_str.size() + 1
 		+ warn_str.size() + 1
 		+ err_str.size() + 1
 		+ critical_str.size() + 1
-		+ 1, '\0');
+		+ 1);
 
 	const std::string_view* const levels[] = {&trace_str, &debug_str, &info_str, &warn_str, &err_str, &critical_str, &none_str};
 
-	unsigned int current_shift = 0;
 	for (const std::string_view* const lvl : levels) {
-		std::copy(lvl->begin(), lvl->end(), m_level_list_text.data() + current_shift);
-		current_shift += static_cast<unsigned int>(lvl->size()) + 1u;
+		std::copy(lvl->begin(), lvl->end(), std::back_inserter(m_level_list_text));
+		m_level_list_text.push_back('\0');
 	}
+	m_level_list_text.push_back('\0');
 
 	set_min_log_level(m_lowest_log_level_val);
 }
