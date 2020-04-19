@@ -950,6 +950,10 @@ void terminal<TerminalHelper>::show_autocomplete() noexcept {
 
 template <typename TerminalHelper>
 void terminal<TerminalHelper>::call_command() noexcept {
+	if (m_buffer_usage == 0) {
+		return;
+	}
+
 	m_current_autocomplete_strings.clear();
 	m_current_autocomplete.clear();
 
