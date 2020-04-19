@@ -309,6 +309,21 @@ namespace ImTerm {
 			m_allow_y_resize = allowed;
 		}
 
+	    // executes a statement, simulating user input
+	    // returns false if given string is too long to be interpreted
+	    // if true is returned, any text inputed by the user is overridden
+	    bool execute(std::string_view str) noexcept {
+		    if (str.size() <= m_command_buffer.size()) {
+			    std::copy(str.begin(), str.end(), m_command_buffer.begin());
+                m_buffer_usage = str.size();
+                call_command();
+			    m_buffer_usage = 0;
+			    m_command_buffer[0] = '\0';
+			    return true;
+            }
+		    return false;
+	    }
+
 	private:
 		explicit terminal(value_type& arg_value, const char * window_name_, int base_width_, int base_height_, std::shared_ptr<TerminalHelper> th, terminal_helper_is_valid&&);
 
