@@ -686,10 +686,12 @@ void terminal<TerminalHelper>::display_messages() noexcept {
 						ImGui::PopStyleColor(msg_col_pop);
 						msg_col_pop = 0u;
 					}
-					const int pop = try_push_style(ImGuiCol_Text, color.second.second);
-					text_formatted("%.*s", color.second.first, &*color.first);
-					ImGui::PopStyleColor(pop);
-					ImGui::SameLine(0.f, 0.f);
+					if (color.second.first != 0) {
+                        const int pop = try_push_style(ImGuiCol_Text, color.second.second);
+                        text_formatted("%.*s", color.second.first, &*color.first);
+                        ImGui::PopStyleColor(pop);
+                        ImGui::SameLine(0.f, 0.f);
+					}
 				}
 				ImGui::PopStyleColor(msg_col_pop);
 				ImGui::NewLine();
