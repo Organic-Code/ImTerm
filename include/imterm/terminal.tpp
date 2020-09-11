@@ -307,7 +307,9 @@ bool terminal<TerminalHelper>::show(const std::vector<config_panels>& panels_ord
 	m_current_size = ImGui::GetWindowSize();
 
 	display_settings_bar(panels_order);
+	IMTERM_LOCK();
 	display_messages();
+	IMTERM_UNLOCK();
 	display_command_line();
 
 	ImGui::End();
@@ -388,7 +390,10 @@ void terminal<TerminalHelper>::add_message(message&& msg) {
 template <typename TerminalHelper>
 void terminal<TerminalHelper>::clear() {
 	m_flush_bit = true;
+	IMTERM_LOCK();
 	m_logs.clear();
+	m_current_log_oldest_idx = 0u;
+	IMTERM_UNLOCK();
 }
 
 template <typename TerminalHelper>
@@ -445,6 +450,7 @@ void terminal<TerminalHelper>::set_min_log_level(message::severity::severity_t l
 
 template <typename TerminalHelper>
 void terminal<TerminalHelper>::set_max_log_len(std::vector<message>::size_type max_size) {
+	IMTERM_LOCK();
 	std::vector<message> new_msg_vect;
 	new_msg_vect.reserve(max_size);
 	for (auto i = 0u ; i < std::min(max_size, m_logs.size() - m_current_log_oldest_idx) ; ++i) {
@@ -456,6 +462,7 @@ void terminal<TerminalHelper>::set_max_log_len(std::vector<message>::size_type m
 	m_logs = std::move(new_msg_vect);
 	m_current_log_oldest_idx = 0u;
 	m_max_log_len = max_size;
+	IMTERM_UNLOCK();
 }
 
 template <typename TerminalHelper>
@@ -696,12 +703,14 @@ void terminal<TerminalHelper>::display_messages() noexcept {
 				ImGui::PopStyleColor(msg_col_pop);
 				ImGui::NewLine();
 			};
-
-			for (auto i = m_current_log_oldest_idx ; i < m_logs.size() ; ++i) {
-				print_single_message(m_logs[i]);
-			}
-			for (auto i = 0u ; i < m_current_log_oldest_idx ; ++i) {
-				print_single_message(m_logs[i]);
+			if (m_current_log_oldest_idx < m_logs.size())
+			{
+				for (size_t i = m_current_log_oldest_idx ; i < m_logs.size() ; ++i) {
+					print_single_message(m_logs[i]);
+				}
+				for (size_t i = 0u ; i < m_current_log_oldest_idx ; ++i) {
+					print_single_message(m_logs[i]);
+				}
 			}
 		}
 		if (m_autoscroll) {
@@ -991,12 +1000,9 @@ void terminal<TerminalHelper>::call_command() noexcept {
 	}
 
 	argument_type arg{m_argument_value, *this, *splitted};
-	m_flush_bit = false;
+
 	matching_command_list[0].get().call(arg);
 	m_command_history.emplace_back(std::move(resolved.second)); // resolved.second has ownership over *splitted
-	if (m_flush_bit) {
-		m_last_flush_at_history = m_command_history.size();
-	}
 }
 
 template <typename TerminalHelper>
@@ -1582,12 +1588,14 @@ std::optional<std::vector<std::string>> terminal<TerminalHelper>::split_by_space
 
 template <typename TerminalHelper>
 void terminal<TerminalHelper>::push_message(message&& msg) {
+	IMTERM_LOCK();
 	if (m_logs.size() == m_max_log_len) {
 		m_logs[m_current_log_oldest_idx] = std::move(msg);
 		m_current_log_oldest_idx = (m_current_log_oldest_idx + 1) % m_logs.size();
 	} else {
 		m_logs.emplace_back(std::move(msg));
 	}
+	IMTERM_UNLOCK();
 }
 
 } // namespace term
