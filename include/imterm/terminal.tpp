@@ -308,9 +308,9 @@ bool terminal<TerminalHelper>::show(const std::vector<config_panels>& panels_ord
 	m_current_size = ImGui::GetWindowSize();
 
 	display_settings_bar(panels_order);
-	IMTERM_LOCK();
+	try_lock();
 	display_messages();
-	IMTERM_UNLOCK();
+	try_unlock();
 	display_command_line();
 
 	ImGui::End();
@@ -391,10 +391,10 @@ void terminal<TerminalHelper>::add_message(message&& msg) {
 template <typename TerminalHelper>
 void terminal<TerminalHelper>::clear() {
 	m_flush_bit = true;
-	IMTERM_LOCK();
+	try_lock();
 	m_logs.clear();
 	m_current_log_oldest_idx = 0u;
-	IMTERM_UNLOCK();
+	try_unlock();
 }
 
 template <typename TerminalHelper>
@@ -451,7 +451,7 @@ void terminal<TerminalHelper>::set_min_log_level(message::severity::severity_t l
 
 template <typename TerminalHelper>
 void terminal<TerminalHelper>::set_max_log_len(std::vector<message>::size_type max_size) {
-	IMTERM_LOCK();
+	try_lock();
 	std::vector<message> new_msg_vect;
 	new_msg_vect.reserve(max_size);
 	for (auto i = 0u ; i < std::min(max_size, m_logs.size() - m_current_log_oldest_idx) ; ++i) {
@@ -463,7 +463,7 @@ void terminal<TerminalHelper>::set_max_log_len(std::vector<message>::size_type m
 	m_logs = std::move(new_msg_vect);
 	m_current_log_oldest_idx = 0u;
 	m_max_log_len = max_size;
-	IMTERM_UNLOCK();
+	try_unlock();
 }
 
 template <typename TerminalHelper>
@@ -1589,14 +1589,13 @@ std::optional<std::vector<std::string>> terminal<TerminalHelper>::split_by_space
 
 template <typename TerminalHelper>
 void terminal<TerminalHelper>::push_message(message&& msg) {
-	IMTERM_LOCK();
+	try_lock();
 	if (m_logs.size() == m_max_log_len) {
 		m_logs[m_current_log_oldest_idx] = std::move(msg);
 		m_current_log_oldest_idx = (m_current_log_oldest_idx + 1) % m_logs.size();
 	} else {
 		m_logs.emplace_back(std::move(msg));
 	}
-	IMTERM_UNLOCK();
+	try_unlock();
 }
-
 } // namespace term
