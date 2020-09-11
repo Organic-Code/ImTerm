@@ -18,7 +18,7 @@
 ///                                                                                                                                     ///
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
+#include <atomic>
 #include <vector>
 #include <string>
 #include <utility>
@@ -79,7 +79,6 @@ namespace ImTerm {
 	class terminal {
 		using buffer_type = std::array<char, 1024>;
 		using small_buffer_type = std::array<char, 128>;
-
 	public:
 		using value_type = misc::non_void_t<typename TerminalHelper::value_type>;
 		using command_type = command_t<terminal<TerminalHelper>>;
@@ -385,6 +384,16 @@ namespace ImTerm {
 		//                except if ignore_non_match was set to true
 		std::optional<std::vector<std::string>> split_by_space(std::string_view in, bool ignore_non_match = false) const;
 
+		inline void try_lock()
+		{
+			while (m_flag.test_and_set(std::memory_order_seq_cst)) {}
+		}
+
+		inline void try_unlock()
+		{
+			m_flag.clear(std::memory_order_seq_cst);
+		}
+
 		////////////
 
 		value_type& m_argument_value;
@@ -465,6 +474,7 @@ namespace ImTerm {
 		bool m_ignore_next_textinput{false};
 		bool m_has_focus{false};
 
+		std::atomic_flag m_flag;
 	};
 }
 
