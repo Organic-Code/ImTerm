@@ -79,11 +79,6 @@ namespace ImTerm {
 	class terminal {
 		using buffer_type = std::array<char, 1024>;
 		using small_buffer_type = std::array<char, 128>;
-
-		std::atomic_flag m_flag;
-#define IMTERM_LOCK() while (m_flag.test_and_set(std::memory_order_seq_cst)) {}
-#define IMTERM_UNLOCK() m_flag.clear(std::memory_order_seq_cst)
-
 	public:
 		using value_type = misc::non_void_t<typename TerminalHelper::value_type>;
 		using command_type = command_t<terminal<TerminalHelper>>;
@@ -468,6 +463,10 @@ namespace ImTerm {
 
 		bool m_ignore_next_textinput{false};
 		bool m_has_focus{false};
+
+		std::atomic_flag m_flag;
+#define IMTERM_LOCK() while (m_flag.test_and_set(std::memory_order_seq_cst)) {}
+#define IMTERM_UNLOCK() m_flag.clear(std::memory_order_seq_cst)
 
 	};
 }

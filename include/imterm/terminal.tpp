@@ -225,6 +225,7 @@ terminal<TerminalHelper>::terminal(value_type& arg_value, const char* window_nam
 		, m_autowrap_text{"autowrap"}
 		, m_filter_hint{"filter..."}
 {
+	m_flag.clear();
 	assert(m_t_helper != nullptr);
 	details::assign_terminal(*m_t_helper, *this);
 
