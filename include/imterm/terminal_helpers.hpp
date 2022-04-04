@@ -25,6 +25,7 @@
 #if __has_include("spdlog/spdlog.h")
 #include "spdlog/common.h"
 #include "spdlog/formatter.h"
+#include "spdlog/pattern_formatter.h"
 #include "spdlog/details/log_msg.h"
 #include "spdlog/sinks/base_sink.h"
 
