@@ -199,7 +199,7 @@ namespace ImTerm {
 		void clear();
 
 		message::severity::severity_t log_level() noexcept {
-			return m_level + m_lowest_log_level_val;
+			return static_cast<message::severity::severity_t>(m_level + static_cast<int>(m_lowest_log_level_val));
 		}
 
 		void log_level(message::severity::severity_t new_level) noexcept {
