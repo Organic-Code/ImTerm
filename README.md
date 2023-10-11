@@ -10,7 +10,7 @@
     * [Tuning](#tuning)
         - [colors and text](#colors-and-text)
         - [non-ascii characters](#non-ascii-characters)
-        - [spdlog integratino](#spdlog-integration)
+        - [spdlog integration](#spdlog-integration)
         - [extra](#extra)
 - [Author](#author)
 - [License](#license)
