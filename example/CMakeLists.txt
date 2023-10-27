@@ -1,5 +1,14 @@
+##/////////////////////////////////////
+##Kasper de Bruin//////////////////////
+##///26-10-23//////////////////////////
+##/////////////////////////////////////
+#change cmake target to 23
+
 cmake_minimum_required(VERSION 3.12)
 project(ImTerm-Example)
+
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/common.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/fmt.cmake)
