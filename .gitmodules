@@ -1,15 +1,13 @@
-[submodule "external/SFML"]
-	path = example/external/SFML
-	url = https://github.com/SFML/SFML
-[submodule "external/imgui-sfml"]
-	path = example/external/imgui-sfml
-	url = https://github.com/eliasdaler/imgui-sfml
 [submodule "external/imgui"]
 	path = example/external/imgui
 	url = https://github.com/ocornut/imgui
+	branch = docking
 [submodule "example/external/spdlog"]
 	path = example/external/spdlog
 	url = https://github.com/gabime/spdlog
 [submodule "example/external/fmt"]
 	path = example/external/fmt
 	url = https://github.com/fmtlib/fmt
+[submodule "example/external/glfw"]
+	path = example/external/glfw
+	url = https://github.com/glfw/glfw.git
