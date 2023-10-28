@@ -10,19 +10,61 @@ project(ImTerm-Example)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/common.cmake)
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/fmt.cmake)
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/spdlog.cmake)
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.cmake)
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/SFML.cmake)
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/imgui-sfml.cmake)
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/opengl.cmake)
+#basic libraries
+include(cmake/common.cmake)
+include(cmake/fmt.cmake)
+include(cmake/spdlog.cmake)
+include(cmake/config.cmake)
 
-add_executable(ImTerm-Example main.cpp terminal_commands.cpp)
+#Find glfw
+find_package(glfw3 3.3 REQUIRED)
+
+# glad sources
+set(GLAD_SOURCES external/glad/src/glad.c)
+
+set(IMGUI_SOURCES
+        external/imgui/imgui.cpp
+        external/imgui/imgui_demo.cpp
+        external/imgui/imgui_draw.cpp
+        external/imgui/imgui_internal.h
+        external/imgui/imgui_tables.cpp
+        external/imgui/imgui_widgets.cpp
+
+        external/imgui/backends/imgui_impl_glfw.cpp
+        external/imgui/backends/imgui_impl_opengl3.cpp
+)
+
+set(SOURCES
+        main.cpp
+        terminal_commands.hpp
+        terminal_commands.cpp
+        docking_params.h
+)
+
+
+
+#include imgui
+include_directories(external/imgui/)
+# include glad
+include_directories(external/glad/include)
+
+
+
+add_executable(ImTerm-Example ${SOURCES} ${IMGUI_SOURCES} ${GLAD_SOURCES})
+
 target_include_directories(ImTerm-Example PRIVATE ../include)
-target_include_directories(ImTerm-Example SYSTEM PRIVATE ${SFML_INCLUDE_DIR} ${IMGUI_INCLUDE_DIR} ${IMGUI_SFML_INCLUDE_DIR}
-        ${SPDLOG_INCLUDE_DIR} ${FMT_INCLUDE_DIR})
 
-target_link_libraries(ImTerm-Example PRIVATE ${SFML_LIBRARY} ${IMGUI_SFML_LIBRARY} ${OPENGL_LIBRARY})
+target_include_directories(
+        ImTerm-Example SYSTEM PRIVATE
+        ${SPDLOG_INCLUDE_DIR}
+        ${FMT_INCLUDE_DIR})
 
-set_target_properties(ImTerm-Example PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS OFF)
+target_link_libraries(
+        ImTerm-Example PRIVATE
+        glfw)
+
+set_target_properties(
+        ImTerm-Example PROPERTIES
+        CXX_STANDARD 23
+        CXX_STANDARD_REQUIRED ON
+        CXX_EXTENSIONS OFF)
