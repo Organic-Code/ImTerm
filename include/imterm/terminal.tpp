@@ -22,6 +22,8 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
+#include <cstdio>
+#include <iostream>
 #include <array>
 #include <cctype>
 #include <charconv>
@@ -29,11 +31,15 @@
 #include <optional>
 #include <iterator>
 #include <algorithm>
+
+
 #ifdef IMTERM_ENABLE_REGEX
 #include <regex>
 #endif
 
 #include "misc.hpp"
+
+
 
 namespace ImTerm {
 namespace details {
@@ -1000,10 +1006,31 @@ void terminal<TerminalHelper>::call_command() noexcept {
 
 	std::vector<command_type_cref> matching_command_list = m_t_helper->find_commands_by_prefix(splitted->front());
 	if (matching_command_list.empty()) {
-		splitted->front() += ": command not found";
-		try_log(splitted->front(), message::type::error);
-		m_command_history.emplace_back(std::move(resolved.second));
-		return;
+
+        //std::cout << "command; " <<  << std::endl;
+        std::string fullCommand = "cd ~ && ";
+
+        for (auto& s : *splitted) {
+            fullCommand += s;
+            fullCommand += " ";
+        }
+
+        FILE* pipe = popen("ping -c 4 example.com", "r");
+        char buffer[128];
+        std::string result;
+
+        if (!pipe) {
+            result = "Error executing ping command.";
+        } else {
+            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                result += buffer;
+            }
+            pclose(pipe);
+        }
+
+
+        splitted->front() += result;
+        return;
 	}
 
 	argument_type arg{m_argument_value, *this, *splitted};

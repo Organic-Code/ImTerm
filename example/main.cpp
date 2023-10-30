@@ -11,8 +11,6 @@
 #include <GLAD/glad.h>
 #include <GLFW/glfw3.h>
 
-#include <L
-
 //Terminal
 #include "imterm/terminal.hpp"
 #include "terminal_commands.hpp"
@@ -59,10 +57,10 @@ int main()
     config.OversampleV = 3;
 
 
-    ImFont* mainFont = io.Fonts->AddFontFromFileTTF(
-            "Assets/Fonts/JetBrainsMono-2.304/fonts/ttf/JetBrainsMono-Regular.ttf",
-            17, &config);
-    io.FontDefault = mainFont;
+//    ImFont* mainFont = io.Fonts->AddFontFromFileTTF(
+//            "Assets/Fonts/JetBrainsMono-2.304/fonts/ttf/JetBrainsMono-Regular.ttf",
+//            17, &config);
+//    io.FontDefault = mainFont;
 
 //
 
@@ -77,6 +75,7 @@ int main()
     unsigned short frame_mult = 5u;
     spdlog::set_level(spdlog::level::trace);
     spdlog::default_logger()->sinks().push_back(terminal_log.get_terminal_helper());
+
 
     while(!glfwWindowShouldClose(window)) {
         int display_w, display_h;
@@ -171,24 +170,24 @@ int main()
             ImGui::ShowStackToolWindow();
 
             if (showing_term) {
-                if (frame_count % (30 * frame_mult) == 0) {
-                    spdlog::trace("Logging a trace message every {} frames", 30 * frame_mult);
-                }
-                if (frame_count % (60 * frame_mult) == 0) {
-                    spdlog::debug("Logging a debug message every {} frames", 60 * frame_mult);
-                }
-                if (frame_count % (120 * frame_mult) == 0) {
-                    spdlog::warn("Logging a warn message every {} frames", 120 * frame_mult);
-                }
-                if (frame_count % (90 * frame_mult) == 0) {
-                    spdlog::info("Logging an info message every {} frames", 90 * frame_mult);
-                }
-                if (frame_count % (180 * frame_mult) == 0) {
-                    spdlog::critical("Logging a critical message every {} frames", 180 * frame_mult);
-                }
-                if (frame_count % (150 * frame_mult) == 0) {
-                    spdlog::error("Logging an error message every {} frames", 150 * frame_mult);
-                }
+//                if (frame_count % (30 * frame_mult) == 0) {
+//                    spdlog::trace("Logging a trace message every {} frames", 30 * frame_mult);
+//                }
+//                if (frame_count % (60 * frame_mult) == 0) {
+//                    spdlog::debug("Logging a debug message every {} frames", 60 * frame_mult);
+//                }
+//                if (frame_count % (120 * frame_mult) == 0) {
+//                    spdlog::warn("Logging a warn message every {} frames", 120 * frame_mult);
+//                }
+//                if (frame_count % (90 * frame_mult) == 0) {
+//                    spdlog::info("Logging an info message every {} frames", 90 * frame_mult);
+//                }
+//                if (frame_count % (180 * frame_mult) == 0) {
+//                    spdlog::critical("Logging a critical message every {} frames", 180 * frame_mult);
+//                }
+//                if (frame_count % (150 * frame_mult) == 0) {
+//                    spdlog::error("Logging an error message every {} frames", 150 * frame_mult);
+//                }
                 showing_term = terminal_log.show();
                 if (cmd_struct.should_close) {
                     glfwSetWindowShouldClose(window, true);

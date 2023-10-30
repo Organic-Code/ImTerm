@@ -1,10 +1,3 @@
-##/////////////////////////////////////
-##Kasper de Bruin//////////////////////
-##///26-10-23//////////////////////////
-##/////////////////////////////////////
-#change cmake target to 23
-#enabled default project
-
 cmake_minimum_required(VERSION 3.12)
 project(ImTerm VERSION 0.1.0 LANGUAGES CXX)
 

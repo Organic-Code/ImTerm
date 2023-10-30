@@ -30,10 +30,13 @@
 #include <array>
 
 
+#include <thread>
+#include <chrono>
 #include "utils.hpp"
 #include "misc.hpp"
 
 #include "fmt/format.h"
+extern std::mutex log_mutex;  // Declare the mutex
 
 namespace ImTerm {
 
@@ -93,6 +96,7 @@ namespace ImTerm {
         using small_buffer_type = std::array<char, 128>;
 
     public:
+
         using value_type   = misc::non_void_t<typename TerminalHelper::value_type>;
         using command_type = command_t<terminal<TerminalHelper>>;
         using command_type_cref = std::reference_wrapper<const command_type>;
@@ -498,6 +502,8 @@ namespace ImTerm {
         bool m_has_focus{false};
 
         std::atomic_flag m_flag;
+
+        void thread_safe_try_log(const std::string &message, message::type log_type);
     };
 }  // namespace ImTerm
 

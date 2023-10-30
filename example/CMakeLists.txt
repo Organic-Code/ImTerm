@@ -15,6 +15,7 @@ include(cmake/common.cmake)
 include(cmake/fmt.cmake)
 include(cmake/spdlog.cmake)
 include(cmake/config.cmake)
+include(cmake/opengl.cmake)
 
 #Find glfw
 find_package(glfw3 3.3 REQUIRED)
@@ -36,9 +37,7 @@ set(IMGUI_SOURCES
 
 set(SOURCES
         main.cpp
-        terminal_commands.hpp
         terminal_commands.cpp
-        docking_params.h
 )
 
 
