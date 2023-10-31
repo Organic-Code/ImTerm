@@ -37,6 +37,8 @@ set(IMGUI_SOURCES
 
 set(SOURCES
         main.cpp
+        Application.cpp
+        Application.h
         terminal_commands.cpp
 )
 

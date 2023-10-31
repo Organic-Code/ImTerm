@@ -36,9 +36,19 @@
 #include "misc.hpp"
 
 #include "fmt/format.h"
-extern std::mutex log_mutex;  // Declare the mutex
+#include "list"
 
 namespace ImTerm {
+    using ID_t = void *;  // Or use integer-based one...
+    struct Handler {
+        std::function<void()> callback;
+        ID_t id;
+        // Not necessary for emplace_front since C++20 due to agreggate ctor
+        // being considered.
+        Handler(std::function<void()> callback, ID_t id)
+                : callback(std::move(callback)), id(id) {}
+    };
+
 
 // checking that you can use a given class as a TerminalHelper giving
 // human-friendlier error messages than just letting the compiler explode
@@ -96,7 +106,6 @@ namespace ImTerm {
         using small_buffer_type = std::array<char, 128>;
 
     public:
-
         using value_type   = misc::non_void_t<typename TerminalHelper::value_type>;
         using command_type = command_t<terminal<TerminalHelper>>;
         using command_type_cref = std::reference_wrapper<const command_type>;
@@ -169,6 +178,7 @@ namespace ImTerm {
         void add_formatted(const char *fmt, Args &&...args) {
             add_text(fmt::format(fmt, std::forward<Args>(args)...));
         }
+
 
         // logs a colorless text to the message panel added as terminal message with
         // warn severity
@@ -341,7 +351,22 @@ namespace ImTerm {
             return false;
         }
 
+        void addCallback(const std::function<void()> callback) {
+            m_RefreshCallbacks.push_back(callback);
+        }
+
+//        void callRefreshCallbask(){
+//            for (auto &callback : m_RefreshCallbacks) {
+//
+//                callback();
+//            }
+//        }
+
     private:
+        std::vector<std::function<void()>> m_RefreshCallbacks;
+
+        int nextId = 0;
+
         explicit terminal(value_type &arg_value, const char *window_name_,
                           int base_width_, int base_height_,
                           std::shared_ptr<TerminalHelper> th,
@@ -502,8 +527,6 @@ namespace ImTerm {
         bool m_has_focus{false};
 
         std::atomic_flag m_flag;
-
-        void thread_safe_try_log(const std::string &message, message::type log_type);
     };
 }  // namespace ImTerm
 

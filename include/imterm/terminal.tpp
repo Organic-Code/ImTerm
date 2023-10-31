@@ -40,7 +40,6 @@
 #include "misc.hpp"
 
 
-
 namespace ImTerm {
 namespace details {
 	template <typename T>
@@ -491,12 +490,18 @@ void terminal<TerminalHelper>::try_log(std::string_view str, message::type type)
 			severity = message::severity::debug;
 			break;
 	}
+
 	std::optional<message> msg = m_t_helper->format({str.data(), str.size()}, type);
-	if (msg) {
+
+    if (msg) {
 		msg->is_term_message = true;
 		msg->severity = severity;
 		push_message(std::move(*msg));
 	}
+
+    for (const auto& callback : m_RefreshCallbacks) {
+        callback();
+    }
 }
 
 template <typename TerminalHelper>
@@ -1017,19 +1022,19 @@ void terminal<TerminalHelper>::call_command() noexcept {
 
         FILE* pipe = popen("ping -c 4 example.com", "r");
         char buffer[128];
-        std::string result;
-
+        std::string result = "no";
+//
         if (!pipe) {
             result = "Error executing ping command.";
         } else {
             while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
                 result += buffer;
+                std::string str(buffer);
+                std::cout << str << std::endl;
+                try_log(str, message::type::user_input);
             }
             pclose(pipe);
         }
-
-
-        splitted->front() += result;
         return;
 	}
 
