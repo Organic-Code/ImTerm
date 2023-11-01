@@ -22,6 +22,12 @@
 # SOFTWARE.                                                                      #
 ##################################################################################
 
+ ##/////////////////////////////////////
+##Kasper de Bruin//////////////////////
+##///26-10-23//////////////////////////
+##/////////////////////////////////////
+# Added support for AppleClang
+
 include(CheckCXXCompilerFlag)
 include(CheckCCompilerFlag)
 
@@ -307,13 +313,13 @@ function(get_files output)
 	foreach(it ${dirs})
 		if(IS_DIRECTORY ${it})
 			set(patterns
-			  "${it}/*.c"
-			  "${it}/*.cc"
-			  "${it}/*.cpp"
-			  "${it}/*.cxx"
-			  "${it}/*.h"
-			  "${it}/*.hpp"
-			  )
+					"${it}/*.c"
+					"${it}/*.cc"
+					"${it}/*.cpp"
+					"${it}/*.cxx"
+					"${it}/*.h"
+					"${it}/*.hpp"
+			)
 			file(${glob} tmp_files ${patterns})
 			list(APPEND files ${tmp_files})
 			get_filename_component(parent_dir ${it} DIRECTORY)
@@ -493,11 +499,11 @@ endfunction()
 #   {value} [in] directory:   Output directory
 function(target_set_runtime_output_directory target directory)
 	set_target_properties(${target} PROPERTIES
-	  RUNTIME_OUTPUT_DIRECTORY                "${directory}"
-	  RUNTIME_OUTPUT_DIRECTORY_DEBUG          "${directory}"
-	  RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${directory}"
-	  RUNTIME_OUTPUT_DIRECTORY_RELEASE        "${directory}"
-	  )
+			RUNTIME_OUTPUT_DIRECTORY                "${directory}"
+			RUNTIME_OUTPUT_DIRECTORY_DEBUG          "${directory}"
+			RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${directory}"
+			RUNTIME_OUTPUT_DIRECTORY_RELEASE        "${directory}"
+	)
 endfunction()
 
 ## target_set_library_output_directory(target directory)
@@ -506,11 +512,11 @@ endfunction()
 #   {value} [in] directory:   Output directory
 function(target_set_library_output_directory target directory)
 	set_target_properties(${target} PROPERTIES
-	  LIBRARY_OUTPUT_DIRECTORY                "${directory}"
-	  LIBRARY_OUTPUT_DIRECTORY_DEBUG          "${directory}"
-	  LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO "${directory}"
-	  LIBRARY_OUTPUT_DIRECTORY_RELEASE        "${directory}"
-	  )
+			LIBRARY_OUTPUT_DIRECTORY                "${directory}"
+			LIBRARY_OUTPUT_DIRECTORY_DEBUG          "${directory}"
+			LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO "${directory}"
+			LIBRARY_OUTPUT_DIRECTORY_RELEASE        "${directory}"
+	)
 endfunction()
 
 ## target_set_archive_output_directory(target directory)
@@ -519,11 +525,11 @@ endfunction()
 #   {value} [in] directory:   Output directory
 function(target_set_archive_output_directory target directory)
 	set_target_properties(${target} PROPERTIES
-	  ARCHIVE_OUTPUT_DIRECTORY                "${directory}"
-	  ARCHIVE_OUTPUT_DIRECTORY_DEBUG          "${directory}"
-	  ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO "${directory}"
-	  ARCHIVE_OUTPUT_DIRECTORY_RELEASE        "${directory}"
-	  )
+			ARCHIVE_OUTPUT_DIRECTORY                "${directory}"
+			ARCHIVE_OUTPUT_DIRECTORY_DEBUG          "${directory}"
+			ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO "${directory}"
+			ARCHIVE_OUTPUT_DIRECTORY_RELEASE        "${directory}"
+	)
 endfunction()
 
 ## setup_msvc(target [OPTIONS [static_runtime] [no_warnings] [low_warnings]])
@@ -593,52 +599,52 @@ function(setup_msvc target)
 		set(flags "/W3")
 	else()
 		set(flags
-		  ## Base flags:
-		  "/W4"
+				## Base flags:
+				"/W4"
 
-		  ## Extra flags:
-		  "/w44263" # 'function': member function does not override any base class virtual member function
-		  "/w44265" # 'class': class has virtual functions, but destructor is not virtual
-		  "/w44287" # 'operator': unsigned/negative constant mismatch
-		  "/w44289" # nonstandard extension used : 'var' : loop control variable declared in the for-loop is used outside the for-loop scope
-		  "/w44296" # 'operator': expression is always false
-		  "/w44355" # 'this' : used in base member initializer list
-		  "/w44365" # 'action': conversion from 'type_1' to 'type_2', signed/unsigned mismatch
-		  "/w44412" # 'function': function signature contains type 'type'; C++ objects are unsafe to pass between pure code and mixed or native
-		  "/w44431" # missing type specifier - int assumed. Note: C no longer supports default-int
-		  "/w44536" # 'type name': type-name exceeds meta-data limit of 'limit' characters
-		  "/w44545" # expression before comma evaluates to a function which is missing an argument list
-		  "/w44546" # function call before comma missing argument list
-		  "/w44547" # 'operator': operator before comma has no effect; expected operator with side-effect
-		  "/w44548" # expression before comma has no effect; expected expression with side-effect
-		  "/w44549" # 'operator': operator before comma has no effect; did you intend 'operator'?
-		  "/w44555" # expression has no effect; expected expression with side-effect
-		  "/w44619" # #pragma warning: there is no warning number 'number'
-		  #"/w44623" # 'derived class': default constructor could not be generated because a base class default constructor is inaccessible
-		  #"/w44625" # 'derived class': copy constructor could not be generated because a base class copy constructor is inaccessible
-		  #"/w44626" # 'derived class': assignment operator could not be generated because a base class assignment operator is inaccessible
-		  #"/w44640" # 'instance': construction of local static object is not thread-safe
-		  "/w44917" # 'declarator': a GUID can only be associated with a class, interface, or namespace
-		  "/w44946" # reinterpret_cast used between related classes: 'class1' and 'class2'
-		  "/w44986" # 'symbol': exception specification does not match previous declaration
-		  "/w44987" # nonstandard extension used: 'throw (...)'
-		  "/w44988" # 'symbol': variable declared outside class/function scope
-		  "/w45022" # 'type': multiple move constructors specified
-		  "/w45023" # 'type': multiple move assignment operators specified
-		  "/w45029" # nonstandard extension used: alignment attributes in C++ apply to variables, data members and tag types only
-		  "/w45031" # #pragma warning(pop): likely mismatch, popping warning state pushed in different file
-		  "/w45032" # detected #pragma warning(push) with no corresponding #pragma warning(pop)
-		  "/w45034" # use of intrinsic 'intrinsic' causes function function to be compiled as guest code
-		  "/w45035" # use of feature 'feature' causes function function to be compiled as guest code
-		  "/w45036" # varargs function pointer conversion when compiling with /hybrid:x86arm64 'type1' to 'type2'
-		  "/w45038" # data member 'member1' will be initialized after data member 'member2'
-		  "/w45039" # 'function': pointer or reference to potentially throwing function passed to extern C function under -EHc. Undefined behavior may occur if this function throws an exception.
-		  "/w45042" # 'function': function declarations at block scope cannot be specified 'inline' in standard C++; remove 'inline' specifier
+				## Extra flags:
+				"/w44263" # 'function': member function does not override any base class virtual member function
+				"/w44265" # 'class': class has virtual functions, but destructor is not virtual
+				"/w44287" # 'operator': unsigned/negative constant mismatch
+				"/w44289" # nonstandard extension used : 'var' : loop control variable declared in the for-loop is used outside the for-loop scope
+				"/w44296" # 'operator': expression is always false
+				"/w44355" # 'this' : used in base member initializer list
+				"/w44365" # 'action': conversion from 'type_1' to 'type_2', signed/unsigned mismatch
+				"/w44412" # 'function': function signature contains type 'type'; C++ objects are unsafe to pass between pure code and mixed or native
+				"/w44431" # missing type specifier - int assumed. Note: C no longer supports default-int
+				"/w44536" # 'type name': type-name exceeds meta-data limit of 'limit' characters
+				"/w44545" # expression before comma evaluates to a function which is missing an argument list
+				"/w44546" # function call before comma missing argument list
+				"/w44547" # 'operator': operator before comma has no effect; expected operator with side-effect
+				"/w44548" # expression before comma has no effect; expected expression with side-effect
+				"/w44549" # 'operator': operator before comma has no effect; did you intend 'operator'?
+				"/w44555" # expression has no effect; expected expression with side-effect
+				"/w44619" # #pragma warning: there is no warning number 'number'
+				#"/w44623" # 'derived class': default constructor could not be generated because a base class default constructor is inaccessible
+				#"/w44625" # 'derived class': copy constructor could not be generated because a base class copy constructor is inaccessible
+				#"/w44626" # 'derived class': assignment operator could not be generated because a base class assignment operator is inaccessible
+				#"/w44640" # 'instance': construction of local static object is not thread-safe
+				"/w44917" # 'declarator': a GUID can only be associated with a class, interface, or namespace
+				"/w44946" # reinterpret_cast used between related classes: 'class1' and 'class2'
+				"/w44986" # 'symbol': exception specification does not match previous declaration
+				"/w44987" # nonstandard extension used: 'throw (...)'
+				"/w44988" # 'symbol': variable declared outside class/function scope
+				"/w45022" # 'type': multiple move constructors specified
+				"/w45023" # 'type': multiple move assignment operators specified
+				"/w45029" # nonstandard extension used: alignment attributes in C++ apply to variables, data members and tag types only
+				"/w45031" # #pragma warning(pop): likely mismatch, popping warning state pushed in different file
+				"/w45032" # detected #pragma warning(push) with no corresponding #pragma warning(pop)
+				"/w45034" # use of intrinsic 'intrinsic' causes function function to be compiled as guest code
+				"/w45035" # use of feature 'feature' causes function function to be compiled as guest code
+				"/w45036" # varargs function pointer conversion when compiling with /hybrid:x86arm64 'type1' to 'type2'
+				"/w45038" # data member 'member1' will be initialized after data member 'member2'
+				"/w45039" # 'function': pointer or reference to potentially throwing function passed to extern C function under -EHc. Undefined behavior may occur if this function throws an exception.
+				"/w45042" # 'function': function declarations at block scope cannot be specified 'inline' in standard C++; remove 'inline' specifier
 
-		  ## Apocalypse flags:
-		  #"/Wall"
-		  #"/WX"
-		  )
+				## Apocalypse flags:
+				#"/Wall"
+				#"/WX"
+		)
 	endif()
 	foreach(flag ${flags})
 		target_add_compiler_flag(${target} ${flag})
@@ -710,119 +716,119 @@ function(setup_gcc target)
 		set(flags "-pedantic" "-Wall")
 	else()
 		set(flags
-		  ## Base flags:
-		  "-pedantic"
-		  "-pedantic-errors"
-		  "-Wall"
-		  "-Wextra"
+				## Base flags:
+				"-pedantic"
+				"-pedantic-errors"
+				"-Wall"
+				"-Wextra"
 
-		  ## Extra flags:
-		  "-Wdouble-promotion"
-		  "-Wnull-dereference"
-		  "-Wimplicit-fallthrough"
-		  "-Wif-not-aligned"
-		  "-Wmissing-include-dirs"
-		  "-Wswitch-bool"
-		  "-Wswitch-unreachable"
-		  "-Walloc-zero"
-		  "-Wduplicated-branches"
-		  "-Wduplicated-cond"
-		  "-Wfloat-equal"
-		  "-Wshadow"
-		  "-Wundef"
-		  "-Wexpansion-to-defined"
-		  #"-Wunused-macros"
-		  "-Wcast-qual"
-		  "-Wcast-align"
-		  "-Wwrite-strings"
-		  "-Wconversion"
-		  "-Wsign-conversion"
-		  "-Wdate-time"
-		  "-Wextra-semi"
-		  "-Wlogical-op"
-		  "-Wmissing-declarations"
-		  "-Wredundant-decls"
-		  "-Wrestrict"
-		  #"-Winline"
-		  "-Winvalid-pch"
-		  "-Woverlength-strings"
-		  "-Wformat=2"
-		  "-Wformat-signedness"
-		  "-Winit-self"
+				## Extra flags:
+				"-Wdouble-promotion"
+				"-Wnull-dereference"
+				"-Wimplicit-fallthrough"
+				"-Wif-not-aligned"
+				"-Wmissing-include-dirs"
+				"-Wswitch-bool"
+				"-Wswitch-unreachable"
+				"-Walloc-zero"
+				"-Wduplicated-branches"
+				"-Wduplicated-cond"
+				"-Wfloat-equal"
+				"-Wshadow"
+				"-Wundef"
+				"-Wexpansion-to-defined"
+				#"-Wunused-macros"
+				"-Wcast-qual"
+				"-Wcast-align"
+				"-Wwrite-strings"
+				"-Wconversion"
+				"-Wsign-conversion"
+				"-Wdate-time"
+				"-Wextra-semi"
+				"-Wlogical-op"
+				"-Wmissing-declarations"
+				"-Wredundant-decls"
+				"-Wrestrict"
+				#"-Winline"
+				"-Winvalid-pch"
+				"-Woverlength-strings"
+				"-Wformat=2"
+				"-Wformat-signedness"
+				"-Winit-self"
 
-		  ## Optimisation dependant flags
-		  "-Wstrict-overflow=5"
+				## Optimisation dependant flags
+				"-Wstrict-overflow=5"
 
-		  ## Info flags
-		  #"-Winvalid-pch"
-		  #"-Wvolatile-register-var"
-		  #"-Wdisabled-optimization"
-		  #"-Woverlength-strings"
-		  #"-Wunsuffixed-float-constants"
-		  #"-Wvector-operation-performance"
+				## Info flags
+				#"-Winvalid-pch"
+				#"-Wvolatile-register-var"
+				#"-Wdisabled-optimization"
+				#"-Woverlength-strings"
+				#"-Wunsuffixed-float-constants"
+				#"-Wvector-operation-performance"
 
-		  ## Apocalypse flags:
-		  #"-Wsystem-headers"
-		  #"-Werror"
+				## Apocalypse flags:
+				#"-Wsystem-headers"
+				#"-Werror"
 
-		  ## Exit on first error
-		  "-Wfatal-errors"
-		  )
+				## Exit on first error
+				"-Wfatal-errors"
+		)
 		if(option_c)
 			set(c_flags
-			  "-Wdeclaration-after-statement"
-			  "-Wbad-function-cast"
-			  "-Wjump-misses-init"
-			  "-Wstrict-prototypes"
-			  "-Wold-style-definition"
-			  "-Wmissing-prototypes"
-			  "-Woverride-init-side-effects"
-			  "-Wnested-externs"
-			  #"-Wc90-c99-compat"
-			  #"-Wc99-c11-compat"
-			  #"-Wc++-compat"
-			  )
+					"-Wdeclaration-after-statement"
+					"-Wbad-function-cast"
+					"-Wjump-misses-init"
+					"-Wstrict-prototypes"
+					"-Wold-style-definition"
+					"-Wmissing-prototypes"
+					"-Woverride-init-side-effects"
+					"-Wnested-externs"
+					#"-Wc90-c99-compat"
+					#"-Wc99-c11-compat"
+					#"-Wc++-compat"
+			)
 		endif()
 		if(option_cxx)
 			set(cxx_flags
-			  "-Wzero-as-null-pointer-constant"
-			  "-Wsubobject-linkage"
-			  "-Wdelete-incomplete"
-			  "-Wuseless-cast"
-			  "-Wctor-dtor-privacy"
-			  "-Wnoexcept"
-			  "-Wregister"
-			  "-Wstrict-null-sentinel"
-			  "-Wold-style-cast"
-			  "-Woverloaded-virtual"
+					"-Wzero-as-null-pointer-constant"
+					"-Wsubobject-linkage"
+					"-Wdelete-incomplete"
+					"-Wuseless-cast"
+					"-Wctor-dtor-privacy"
+					"-Wnoexcept"
+					"-Wregister"
+					"-Wstrict-null-sentinel"
+					"-Wold-style-cast"
+					"-Woverloaded-virtual"
 
-			  ## Lifetime
-			  "-Wlifetime"
+					## Lifetime
+					"-Wlifetime"
 
-			  ## Suggestions
-			  "-Wsuggest-override"
-			  #"-Wsuggest-final-types"
-			  #"-Wsuggest-final-methods"
-			  #"-Wsuggest-attribute=pure"
-			  #"-Wsuggest-attribute=const"
-			  #"-Wsuggest-attribute=noreturn"
-			  #"-Wsuggest-attribute=format"
+					## Suggestions
+					"-Wsuggest-override"
+					#"-Wsuggest-final-types"
+					#"-Wsuggest-final-methods"
+					#"-Wsuggest-attribute=pure"
+					#"-Wsuggest-attribute=const"
+					#"-Wsuggest-attribute=noreturn"
+					#"-Wsuggest-attribute=format"
 
-			  ## Guidelines from Scott Meyers’ Effective C++ series of books
-			  #"-Weffc++"
+					## Guidelines from Scott Meyers’ Effective C++ series of books
+					#"-Weffc++"
 
-			  ## Special purpose
-			  #"-Wsign-promo"
-			  #"-Wtemplates"
-			  #"-Wmultiple-inheritance"
-			  #"-Wvirtual-inheritance"
-			  #"-Wnamespaces"
+					## Special purpose
+					#"-Wsign-promo"
+					#"-Wtemplates"
+					#"-Wmultiple-inheritance"
+					#"-Wvirtual-inheritance"
+					#"-Wnamespaces"
 
-			  ## Standard versions
-			  #"-Wc++11-compat"
-			  #"-Wc++14-compat"
-			  #"-Wc++17-compat"
-			  )
+					## Standard versions
+					#"-Wc++11-compat"
+					#"-Wc++14-compat"
+					#"-Wc++17-compat"
+			)
 		endif()
 	endif()
 	foreach(flag IN ITEMS ${flags} ${c_flags} ${cxx_flags})
@@ -889,102 +895,102 @@ function(setup_clang target)
 		set(flags "-pedantic" "-Wall")
 	else()
 		set(flags
-		  ## Base flags:
-		  "-pedantic"
-		  "-pedantic-errors"
-		  "-Wall"
-		  "-Wextra"
+				## Base flags:
+				"-pedantic"
+				"-pedantic-errors"
+				"-Wall"
+				"-Wextra"
 
-		  ## Extra flags:
-		  "-Wbad-function-cast"
-		  "-Wcomplex-component-init"
-		  "-Wconditional-uninitialized"
-		  #"-Wcovered-switch-default"
-		  "-Wcstring-format-directive"
-		  "-Wdelete-non-virtual-dtor"
-		  "-Wdeprecated"
-		  "-Wdollar-in-identifier-extension"
-		  "-Wdouble-promotion"
-		  "-Wduplicate-enum"
-		  "-Wduplicate-method-arg"
-		  "-Wembedded-directive"
-		  "-Wexpansion-to-defined"
-		  "-Wextended-offsetof"
-		  "-Wfloat-conversion"
-		  #"-Wfloat-equal"
-		  "-Wfor-loop-analysis"
-		  "-Wformat-pedantic"
-		  "-Wgnu"
-		  "-Wimplicit-fallthrough"
-		  "-Winfinite-recursion"
-		  "-Winvalid-or-nonexistent-directory"
-		  "-Wkeyword-macro"
-		  "-Wmain"
-		  "-Wmethod-signatures"
-		  "-Wmicrosoft"
-		  "-Wmismatched-tags"
-		  "-Wmissing-field-initializers"
-		  "-Wmissing-method-return-type"
-		  "-Wmissing-prototypes"
-		  "-Wmissing-variable-declarations"
-		  "-Wnested-anon-types"
-		  "-Wnon-virtual-dtor"
-		  "-Wnonportable-system-include-path"
-		  "-Wnull-pointer-arithmetic"
-		  "-Wnullability-extension"
-		  "-Wold-style-cast"
-		  "-Woverriding-method-mismatch"
-		  "-Wpacked"
-		  "-Wpedantic"
-		  "-Wpessimizing-move"
-		  "-Wredundant-move"
-		  "-Wreserved-id-macro"
-		  "-Wself-assign"
-		  "-Wself-move"
-		  "-Wsemicolon-before-method-body"
-		  "-Wshadow"
-		  "-Wshadow-field"
-		  "-Wshadow-field-in-constructor"
-		  "-Wshadow-uncaptured-local"
-		  "-Wshift-sign-overflow"
-		  "-Wshorten-64-to-32"
-		  #"-Wsign-compare"
-		  #"-Wsign-conversion"
-		  "-Wsigned-enum-bitfield"
-		  "-Wstatic-in-inline"
-		  #"-Wstrict-prototypes"
-		  #"-Wstring-conversion"
-		  #"-Wswitch-enum"
-		  "-Wtautological-compare"
-		  "-Wtautological-overlap-compare"
-		  "-Wthread-safety"
-		  "-Wundefined-reinterpret-cast"
-		  "-Wuninitialized"
-		  #"-Wunknown-pragmas"
-		  "-Wunreachable-code"
-		  "-Wunreachable-code-aggressive"
-		  #"-Wunused"
-		  "-Wunused-const-variable"
-		  "-Wunused-lambda-capture"
-		  "-Wunused-local-typedef"
-		  "-Wunused-parameter"
-		  "-Wunused-private-field"
-		  "-Wunused-template"
-		  "-Wunused-variable"
-		  "-Wused-but-marked-unused"
-		  "-Wzero-as-null-pointer-constant"
-		  "-Wzero-length-array"
+				## Extra flags:
+				"-Wbad-function-cast"
+				"-Wcomplex-component-init"
+				"-Wconditional-uninitialized"
+				#"-Wcovered-switch-default"
+				"-Wcstring-format-directive"
+				"-Wdelete-non-virtual-dtor"
+				"-Wdeprecated"
+				"-Wdollar-in-identifier-extension"
+				"-Wdouble-promotion"
+				"-Wduplicate-enum"
+				"-Wduplicate-method-arg"
+				"-Wembedded-directive"
+				"-Wexpansion-to-defined"
+				"-Wextended-offsetof"
+				"-Wfloat-conversion"
+				#"-Wfloat-equal"
+				"-Wfor-loop-analysis"
+				"-Wformat-pedantic"
+				"-Wgnu"
+				"-Wimplicit-fallthrough"
+				"-Winfinite-recursion"
+				"-Winvalid-or-nonexistent-directory"
+				"-Wkeyword-macro"
+				"-Wmain"
+				"-Wmethod-signatures"
+				"-Wmicrosoft"
+				"-Wmismatched-tags"
+				"-Wmissing-field-initializers"
+				"-Wmissing-method-return-type"
+				"-Wmissing-prototypes"
+				"-Wmissing-variable-declarations"
+				"-Wnested-anon-types"
+				"-Wnon-virtual-dtor"
+				"-Wnonportable-system-include-path"
+				"-Wnull-pointer-arithmetic"
+				"-Wnullability-extension"
+				"-Wold-style-cast"
+				"-Woverriding-method-mismatch"
+				"-Wpacked"
+				"-Wpedantic"
+				"-Wpessimizing-move"
+				"-Wredundant-move"
+				"-Wreserved-id-macro"
+				"-Wself-assign"
+				"-Wself-move"
+				"-Wsemicolon-before-method-body"
+				"-Wshadow"
+				"-Wshadow-field"
+				"-Wshadow-field-in-constructor"
+				"-Wshadow-uncaptured-local"
+				"-Wshift-sign-overflow"
+				"-Wshorten-64-to-32"
+				#"-Wsign-compare"
+				#"-Wsign-conversion"
+				"-Wsigned-enum-bitfield"
+				"-Wstatic-in-inline"
+				#"-Wstrict-prototypes"
+				#"-Wstring-conversion"
+				#"-Wswitch-enum"
+				"-Wtautological-compare"
+				"-Wtautological-overlap-compare"
+				"-Wthread-safety"
+				"-Wundefined-reinterpret-cast"
+				"-Wuninitialized"
+				#"-Wunknown-pragmas"
+				"-Wunreachable-code"
+				"-Wunreachable-code-aggressive"
+				#"-Wunused"
+				"-Wunused-const-variable"
+				"-Wunused-lambda-capture"
+				"-Wunused-local-typedef"
+				"-Wunused-parameter"
+				"-Wunused-private-field"
+				"-Wunused-template"
+				"-Wunused-variable"
+				"-Wused-but-marked-unused"
+				"-Wzero-as-null-pointer-constant"
+				"-Wzero-length-array"
 
-		  ## Lifetime
-		  "-Wlifetime"
+				## Lifetime
+				"-Wlifetime"
 
-		  ## Info flags
-		  "-Wcomma"
-		  "-Wcomment"
+				## Info flags
+				"-Wcomma"
+				"-Wcomment"
 
-		  ## Exit on first error
-		  "-Wfatal-errors"
-		  )
+				## Exit on first error
+				"-Wfatal-errors"
+		)
 	endif()
 	foreach(flag ${flags})
 		target_add_compiler_flag(${target} ${flag})
@@ -1003,6 +1009,8 @@ function(setup_target target)
 	elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 		setup_gcc(${target} OPTIONS ${ARGN})
 	elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
+		setup_clang(${target} OPTIONS ${ARGN})
+	elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" OR "${CMAKE_C_COMPILER_ID}" STREQUAL "AppleClang")
 		setup_clang(${target} OPTIONS ${ARGN})
 	else()
 		message(WARNING "Unsupported compiler (${CMAKE_CXX_COMPILER_ID}) setup")

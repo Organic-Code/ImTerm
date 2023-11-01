@@ -15,8 +15,15 @@
 ///                                                                                                                                     ///
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//#include "external/imgui/imgui.h"
+//#include "external/imgui/imgui_internal.h"
+//#include "imgui.h"
+
 #include <imgui.h>
 #include <imgui_internal.h>
+
+#include <cstdio>
+#include <iostream>
 #include <array>
 #include <cctype>
 #include <charconv>
@@ -24,11 +31,14 @@
 #include <optional>
 #include <iterator>
 #include <algorithm>
+
+
 #ifdef IMTERM_ENABLE_REGEX
 #include <regex>
 #endif
 
 #include "misc.hpp"
+
 
 namespace ImTerm {
 namespace details {
@@ -480,12 +490,18 @@ void terminal<TerminalHelper>::try_log(std::string_view str, message::type type)
 			severity = message::severity::debug;
 			break;
 	}
+
 	std::optional<message> msg = m_t_helper->format({str.data(), str.size()}, type);
-	if (msg) {
+
+    if (msg) {
 		msg->is_term_message = true;
 		msg->severity = severity;
 		push_message(std::move(*msg));
 	}
+
+    for (const auto& callback : m_RefreshCallbacks) {
+        callback();
+    }
 }
 
 template <typename TerminalHelper>
@@ -995,10 +1011,31 @@ void terminal<TerminalHelper>::call_command() noexcept {
 
 	std::vector<command_type_cref> matching_command_list = m_t_helper->find_commands_by_prefix(splitted->front());
 	if (matching_command_list.empty()) {
-		splitted->front() += ": command not found";
-		try_log(splitted->front(), message::type::error);
-		m_command_history.emplace_back(std::move(resolved.second));
-		return;
+
+        //std::cout << "command; " <<  << std::endl;
+        std::string fullCommand = "cd ~ && ";
+
+        for (auto& s : *splitted) {
+            fullCommand += s;
+            fullCommand += " ";
+        }
+
+        FILE* pipe = popen("ping -c 4 example.com", "r");
+        char buffer[128];
+        std::string result = "no";
+//
+        if (!pipe) {
+            result = "Error executing ping command.";
+        } else {
+            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                result += buffer;
+                std::string str(buffer);
+                std::cout << str << std::endl;
+                try_log(str, message::type::user_input);
+            }
+            pclose(pipe);
+        }
+        return;
 	}
 
 	argument_type arg{m_argument_value, *this, *splitted};
