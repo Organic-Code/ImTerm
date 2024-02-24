@@ -3,7 +3,7 @@
 - [About ImTerm](#about-imterm)
     * [Features](#features)
     * [How to include in your project](#how-to-include-in-your-project)
-- [How does it work](#how-does-it-work)
+- [How it works](#how-does-it-work)
     * [Basic usage](#basic-usage)
         - [TerminalHeplers](#terminalhelpers)
         - [command_type](#command_type)
@@ -45,10 +45,10 @@ To merge the two arguments, simply add surrounding quotes: ``command_name "Hello
 ## How to include in your project
 
 ImTerm only has [ImGui](https://github.com/ocornut/imgui) as mandatory dependency, and has spdlog as
-an optional depency. If you use [spdlog](https://github.com/gabime/spdlog), then you'll get an easier integration,
+an optional depency. If you use [spdlog](https://github.com/gabime/spdlog), then you'll get easier integration,
 otherwise that's not a problem, and you won't need to add spdlog to your project.
 
-Since ImTerm is a header only library, appart from its ImGui dependency (that you probably already use if you came there)
+Since ImTerm is a header only library, apart from its ImGui dependency (that you probably already use if you're here)
 you'll just need to get ImTerm headers, ``#include <imterm/terminal.hpp>``, and you should be done!
 
 ImTerm requires C++17 or above.
@@ -61,7 +61,7 @@ ImTerm requires C++17 or above.
 
 Adding commands to an ImTerm::terminal is done via the types ``command_type_cref``, ``command_type`` and ``argument_type``
 
-The ``command_type`` type (which I should rather call  ``ImTerm::command_t<ImTerm::terminal<TerminalHelper>>``) is a structured used to represent a command, and contains the following attributes:
+The ``command_type`` type (which I should rather call  ``ImTerm::command_t<ImTerm::terminal<TerminalHelper>>``) is a structure used to represent a command, and contains the following attributes:
 
 - the command name name (as an ``std::string_view``)
 - a short description of the command(as an ``std::string_view``) 
@@ -83,7 +83,7 @@ possible contextual completion (you may return an empty vector if you don't want
 
 ## TerminalHelpers
 
-To use ``ImTerm::terminal``'s class, you must supply it a TerminalHelper.
+To use the ``ImTerm::terminal`` class, you must supply it a TerminalHelper.
 The TerminalHelper class is responsible for command management. Because It is expected that your commands will need some kind of argument
 to interact with the rest of your application, your TerminalHelper must define the type ``TerminalHelper::value_type``.
 That value will be passed to your commands as part of their arguments.
@@ -165,10 +165,9 @@ It also furnishes spdlog style formatting facility for messages comming from the
 
 ## extra
 
-If you want to be able to interact with the terminal directly from you TerminalHelper, you may define the extra method ``void set_terminal(terminal<TerminalHelper>& term)``.
+If you want to be able to interact with the terminal directly from the TerminalHelper, you may define the extra method ``void set_terminal(terminal<TerminalHelper>& term)``.
 This method will be invoked right after the instantiation of ImTerm::terminal if it exists, and the passed reference will be valid throughout the whole lifetime of
 the terminal.
-
 
 
 # Author
